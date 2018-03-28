@@ -3,7 +3,7 @@
 from scipy.fftpack import fft
 from scipy.fftpack.realtransforms import dct
 import matplotlib.pyplot as plt
-from lab1.tools import *
+from tools import *
 import scipy.signal as signal
 
 
@@ -35,6 +35,15 @@ def mfcc(samples, winlen=400, winshift=200, preempcoeff=0.97, nfft=512, nceps=13
 
 
 # Functions to be implemented ----------------------------------
+
+def mspec_only(samples, winlen=400, winshift=200, preempcoeff=0.97, nfft=512, nceps=13, samplingrate=20000, liftercoeff=22):
+    frames = enframe(samples, winlen, winshift)
+    preemph = preemp(frames, preempcoeff)
+    windowed = windowing(preemph)
+    spec = powerSpectrum(windowed, nfft)
+    mspec = logMelSpectrum(spec, samplingrate)
+
+    return mspec
 
 def enframe(samples, winlen, winshift):
     """
