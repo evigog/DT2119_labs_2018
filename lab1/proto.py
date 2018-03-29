@@ -220,3 +220,69 @@ def dtw(x, y, dist):
 
     Note that you only need to define the first output for this exercise.
     """
+    N = np.shape(x)[0]
+    M = np.shape(y)[0]
+
+    accD = np.array((N, M))
+
+    for i in range(N):
+        accD[i, 0] = np.inf
+    for i in range(M):
+        accD[0, i] = np.inf
+    accD[0, 0] = 0
+
+    for i in range(N):
+        for j in range(M):
+            cost = dist(x[i], y[i])
+            accD[i, j] = cost + np.min(
+                                    accD[i-1, j],   # insertion
+                                    accD[i, j-1],   # deletion
+                                    accD[i-1, j-1]  #match
+                        )
+
+    print("shape accD: ", np.shape(accD))
+    print("any inf: ", np.isinf(accD).any())
+
+    d = accD[0, M]
+    print("d: ", d)
+    norm_d = d/(N+M)
+    print("d/[len(x)+len(y)]: ", norm_d)
+
+
+def precomputed_dtw(x, y, local_distances):
+    """Dynamic Time Warping.
+
+    Args:
+        x, y: arrays of size NxD and MxD respectively, where D is the dimensionality
+              and N, M are the respective lenghts of the sequences
+        local_distances: NxM matrix with the euclidean distances between each MFCC precomputed
+
+    Outputs:
+        d: global distance between the sequences (scalar) normalized to len(x)+len(y)
+        accD: accumulated distance between frames of x and y (NxM matrix)
+        path: best path thtough AD
+
+    Note that you only need to define the first output for this exercise.
+    """
+    N = np.shape(x)[0]
+    M = np.shape(y)[0]
+
+    accD = np.zeros((N, M))
+
+    for i in range(N):
+        accD[i, 0] = np.inf
+    for i in range(M):
+        accD[0, i] = np.inf
+
+    for n in range(N):
+        for m in range(M):
+            cost = local_distances[n,m]
+            accD[n, m] = cost + min(
+                                    accD[n-1, m],   # insertion
+                                    accD[n, m-1],   # deletion
+                                    accD[n-1, m-1]  #match
+                        )
+
+    d = accD[0, M-1]/(N+M)
+
+    return d, accD, None

@@ -10,7 +10,11 @@ def tidigit2labels(tidigitsarray):
     labels = []
     nex = len(tidigitsarray)
     for ex in range(nex):
-        labels.append(tidigitsarray[ex]['gender'] + '_' + 
+        if tidigitsarray[ex]['gender'] == "man":
+            gender = "m"
+        else:
+            gender = "f"
+        labels.append(gender + '_' + 
                       tidigitsarray[ex]['speaker'] + '_' + 
                       tidigitsarray[ex]['digit'] + '_' + 
                       tidigitsarray[ex]['repetition'])
