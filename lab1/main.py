@@ -3,9 +3,8 @@ import numpy as np
 from scipy.spatial.distance import euclidean
 import os, tools
 from scipy.cluster import hierarchy
-
-import matplotlib
 import matplotlib.pyplot as plt
+from sklearn.mixture import GaussianMixture
 
 output_dir = "results/"
 
@@ -101,6 +100,80 @@ def main():
         plt.figure()
         dn = hierarchy.dendrogram(linkage_matrix, labels = labels, leaf_rotation=90., leaf_font_size=6)
         plt.savefig(os.path.join(output_dir, "global_distances_dendrogram.png"), dpi = 200)
+        plt.show()
+
+#question 7
+def compute_mfcc(data):
+    coeffs = mfcc(data[0]['samples'])
+    for i in range(1, data.shape[0]):
+        c = mfcc(data[i]['samples'])
+        coeffs = np.append(coeffs, c, axis=0)
+
+    return coeffs
+
+def gmm():
+    data = np.load('lab1_data.npz')['data']
+    mfcc_coeffs = compute_mfcc(data)
+
+    n_components = [4,8,16,32]
+
+    for comp in n_components:
+
+        #train GMM model
+        gmm = GaussianMixture(n_components = comp, covariance_type='diag')
+        gmm.fit(mfcc_coeffs)
+
+        select_idx = [16,17,38,39]
+        seven = data[select_idx]
+
+        labels = []
+        for i in range(4): #for each utterance 'seven'
+            test_data = mfcc(seven[i]['samples'])
+            prob = gmm.predict_proba(test_data) #compute posterior
+            l = gmm.predict(test_data)
+            labels.append(l)
+
+            plt.plot(prob)
+            plt.title('posterior with %d components for utterance %d' %(comp,i))
+            plt.savefig((os.path.join(output_dir,'posteriorDiag_%d_%i'%(comp,i))))
+            plt.show()
+#
+        #one plot for all utterances 'seven'
+        seven_mfcc = compute_mfcc(seven)
+        all_prob =  gmm.predict_proba(seven_mfcc)
+        plt.plot(all_prob)
+        plt.title('posterior with %d components for all utterances' %comp)
+        plt.savefig((os.path.join(output_dir,'posteriorDiagAll_%d' % comp)))
+        plt.show()
+
+        # plot the different labels
+        for i in range(2):
+             plt.plot(labels[i])
+        plt.title('Same utterance for man speaker - %d components' %comp)
+        plt.savefig((os.path.join(output_dir,'man_%d' % comp)))
+        plt.show()
+#
+        for i in range(2,4):
+             plt.plot(labels[i])
+        plt.title('Same utterance for woman speaker  - %d components' %comp)
+        plt.savefig((os.path.join(output_dir,'woman_%d' % comp)))
+        plt.show()
+
+        plt.plot(labels[0], label='man')
+        plt.plot(labels[2], label='woman')
+        plt.title('Same utterance for woman and man speaker  - %d components' %comp)
+        plt.legend()
+        plt.savefig((os.path.join(output_dir,'manwoman_%d' % comp)))
+        plt.show()
+
+        #compare 'five' with 'seven' for man
+        five_mfcc = mfcc(data[12]['samples']) #five -> 12, one -> 4
+        five_label = gmm.predict(five_mfcc)
+        plt.plot(labels[0], label='seven')
+        plt.plot(five_label, label='five')
+        plt.title('One and seven for man speaker  - %d components' % comp)
+        plt.legend()
+        plt.savefig((os.path.join(output_dir,'oneseven_%d' % comp)))
         plt.show()
 
 
