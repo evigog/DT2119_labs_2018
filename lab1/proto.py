@@ -220,33 +220,38 @@ def dtw(x, y, dist):
 
     Note that you only need to define the first output for this exercise.
     """
+    print("x: ", np.shape(x))
+    print("y: ", np.shape(y))
     N = np.shape(x)[0]
     M = np.shape(y)[0]
 
-    accD = np.array((N, M))
+    accD = np.zeros((N, M))
 
     for i in range(N):
         accD[i, 0] = np.inf
     for i in range(M):
         accD[0, i] = np.inf
-    accD[0, 0] = 0
 
     for i in range(N):
         for j in range(M):
             cost = dist(x[i], y[i])
-            accD[i, j] = cost + np.min(
+            # print("cost: ",cost)
+            minimum =  min(
                                     accD[i-1, j],   # insertion
                                     accD[i, j-1],   # deletion
                                     accD[i-1, j-1]  #match
                         )
 
-    print("shape accD: ", np.shape(accD))
-    print("any inf: ", np.isinf(accD).any())
+            # print("min: ", np.shape(minimum))
+            accD[i, j] = cost +minimum
+
+    # print("shape accD: ", np.shape(accD))
+    # print("any inf: ", np.isinf(accD).any())
 
     d = accD[0, M]
-    print("d: ", d)
     norm_d = d/(N+M)
-    print("d/[len(x)+len(y)]: ", norm_d)
+
+    return d, _, accD, _
 
 
 def precomputed_dtw(x, y, local_distances):
@@ -283,6 +288,6 @@ def precomputed_dtw(x, y, local_distances):
                                     accD[n-1, m-1]  #match
                         )
 
-    d = accD[0, M-1]/(N+M)
+    d = accD[-1, -1]/(N+M)
 
     return d, accD, None
