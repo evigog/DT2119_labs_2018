@@ -27,11 +27,10 @@ def main():
         mfcc_data = np.vstack(frames_to_mfcc_features)
         mspec_data = np.vstack(frames_to_mspec_features)
 
-
         mfcc_r = np.corrcoef(mfcc_data, rowvar = False)
         mspec_r = np.corrcoef(mspec_data, rowvar = False)
         
-        fig = plt.figure()
+        fig = plt.figure(figsize=(12,6))
         ax = plt.subplot(121)
         ax.set_title("MFCC Feature correlations")
         plt.pcolormesh(mfcc_r, cmap = "RdBu")
@@ -49,7 +48,7 @@ def main():
     D = np.zeros((44,44))
     if(True):
 
-        if os.path.exists(os.path.join(output_dir, "global_distances.npy")):
+        if os.path.exists(os.path.join(output_dir, "global_distances.npy")) and True:
             D = np.load(os.path.join(output_dir, "global_distances.npy"))
         else:
             for i in range(44):
@@ -57,8 +56,11 @@ def main():
                     speaker1 = samples_dict[i]
                     speaker2 = samples_dict[j]
 
-                    sp1_mfcc = p.mfcc(speaker1["samples"])
-                    sp2_mfcc = p.mfcc(speaker2["samples"])
+                    speaker1_sample = speaker1["samples"]
+                    speaker2_sample = speaker2["samples"]
+
+                    sp1_mfcc = p.mfcc(speaker1_sample)
+                    sp2_mfcc = p.mfcc(speaker2_sample)
 
                     N = np.shape(sp1_mfcc)[0]
                     M = np.shape(sp2_mfcc)[0]
@@ -77,8 +79,9 @@ def main():
                     # plt.show()
 
 
+                    # global_d, _, acc_d, _ = p.dtw(speaker1_sample, speaker2_sample, euclidean)
                     global_d, acc_d, _ = p.precomputed_dtw(sp1_mfcc, sp2_mfcc, local_dist)
-                    
+                    print("\tglobal dist: ", global_d)
                     D[i, j] = global_d
 
             np.save(os.path.join(output_dir, "global_distances.npy"), D)
