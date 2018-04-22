@@ -1,6 +1,8 @@
 import numpy as np
 from tools2 import *
 
+import matplotlib.pyplot as plt
+
 def concatHMMs(hmmmodels, namelist):
     """ Concatenates HMM models in a left to right manner
 
@@ -23,27 +25,46 @@ def concatHMMs(hmmmodels, namelist):
     Example:
        wordHMMs['o'] = concatHMMs(phoneHMMs, ['sil', 'ow', 'sil'])
     """
-    M, D = np.shape(hmmmodels[0]['covars'])
 
-    new_transition_matrix = np.zeros(((3*M)-2, (3*M)-2))
+    M, D = np.shape(hmmmodels['ow']['covars'])
+    num_phonems = len(namelist)
+    # num_phonemes*M+1 is the len of the new transition matrix
+
+    new_transition_matrix = np.zeros(((3*M)+1, (3*M)+1))
     new_means = np.zeros((len(hmmmodels)*M, D))
     new_covars = np.zeros(np.shape(new_means))
+    new_start_prob = np.zeros((3*M))
 
     combinedhmm = {}
     for i, phoneme in enumerate(namelist):
-        # Bad indexing
         hmm = hmmmodels[phoneme]
 
-        dim = np.shape(hmm['transmat'][0])
+        dim = np.shape(hmm['transmat'])[0]
+
         if i == 0:
-            new_transition_matrix[i*dim:i*dim+dim] = hmm['transmat']
-        else:
-            new_transition_matrix[i*dim-1:i*dim+dim-1] = hmm['transmat']
+            start = i*dim
+            end = (i*dim)+dim
+            new_transition_matrix[start:end, start:end] = hmm['transmat']
+        elif i == 1:
+            start = (i*dim)-1
+            end = (i*dim)+dim-1
+            new_transition_matrix[start:end, start:end] = hmm['transmat']
+        elif i == 2:
+            start = (i*dim)-2
+            end = (i*dim)+dim-2
+            new_transition_matrix[start:, start:] = hmm['transmat']
 
         new_means[i*M:i*M+3] = hmm['means']
         new_covars[i*M:i*M+3] = hmm['covars']
+        new_start_prob[i*M:i*M+3] = hmm['startprob'][:-1]
 
-    print(new_transition_matrix)
+    combinedhmm['name'] = namelist[-2]
+    combinedhmm['startprob'] = new_start_prob
+    combinedhmm['transmat'] = new_transition_matrix
+    combinedhmm['means'] = new_means
+    combinedhmm['covars'] = new_covars
+
+    return combinedhmm
 
 def gmmloglik(log_emlik, weights):
     """Log Likelihood for a GMM model based on Multivariate Normal Distribution.
@@ -69,6 +90,31 @@ def forward(log_emlik, log_startprob, log_transmat):
     Output:
         forward_prob: NxM array of forward log probabilities for each of the M states in the model
     """
+
+    # N frames, M states
+    N, M = np.shape(log_emlik)
+
+    print('shape log_emlik: ', np.shape(log_emlik))
+    print('shape log_startprob: ', np.shape(log_startprob))
+    print('shape log_transmat: ', np.shape(log_transmat))
+
+    forward_prob = np.zeros((N, M))
+
+    log_alpha_0 = np.add(log_startprob, log_emlik[0, :])
+    forward_prob[0, :] = log_alpha_0
+
+    for timestep in range(1, N):
+        for state in range(M):
+            log_alpha = logsumexp(np.add(forward_prob[timestep-1, :],
+                                         log_transmat[state, :]
+                                         )
+                                  ) + log_emlik[timestep, :]
+
+        forward_prob[timestep, :] = log_alpha
+
+    print('shape forward_prob: ', np.shape(forward_prob))
+
+    return forward_prob
 
 def backward(log_emlik, log_startprob, log_transmat):
     """Backward (beta) probabilities in log domain.
