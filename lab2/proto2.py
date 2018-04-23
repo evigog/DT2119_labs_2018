@@ -127,6 +127,19 @@ def backward(log_emlik, log_startprob, log_transmat):
     Output:
         backward_prob: NxM array of backward log probabilities for each of the M states in the model
     """
+    num_states = log_transmat.shape[0]
+    num_observations = log_emlik.shape[0]
+
+    backward_prob = np.zeros((num_observations, num_states)) #initialize with zero
+
+    for t in range(num_observations-2, -1, -1):
+        for s in range(num_states):
+            #compute sum
+            sum_mat = log_transmat[s,:] + log_emlik[t+1,:] + backward_prob[t+1, :]
+            backward_prob[t, s] = logsumexp(sum_mat)
+
+    return backward_prob
+
 
 def viterbi(log_emlik, log_startprob, log_transmat):
     """Viterbi path.
@@ -140,6 +153,36 @@ def viterbi(log_emlik, log_startprob, log_transmat):
         viterbi_loglik: log likelihood of the best path
         viterbi_path: best path
     """
+    num_states = log_transmat.shape[0]
+    num_observations = log_emlik.shape[0]   #equal to number of frames
+    path_matrix = np.zeros((num_states, num_observations))
+    backpointer = np.zeros((num_states, num_observations)) #best previous path for each time step
+
+    #initialization step
+    for s in range(num_states-1): #forget about last state
+        path_matrix[s, 0] = log_startprob[s] + log_emlik[0,s]
+    #recursion step
+    for t in range(1, num_observations):
+       for s in range(num_states):
+           v = path_matrix[:, t - 1] + log_transmat[:, s]
+           best = np.argmax(v)
+           path_matrix[s,t] = path_matrix[best,t-1] + log_transmat[best, s] + log_emlik[t, s]
+           backpointer[s, t] = best
+
+    backpointer[-1, -1] = np.argmax(path_matrix[s, num_observations-1] + log_transmat[best, -1])
+    viterbi_loglik = np.max(path_matrix[:, -1])
+    # backtracking
+    backpointer = backpointer.astype(int)
+    viterbi_path = np.zeros((num_observations))
+    viterbi_path[0] = 0
+    viterbi_path[-1] = int(np.argmax(path_matrix[:, -1]))
+
+    for t in range(num_observations-2, -1, -1):
+       best = backpointer[int(viterbi_path[t+1]), t+1]
+       viterbi_path[t]= int(best)
+
+    return viterbi_loglik, viterbi_path
+
 
 def statePosteriors(log_alpha, log_beta):
     """State posterior (gamma) probabilities in log domain.

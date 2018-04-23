@@ -17,9 +17,9 @@ wordHMMs = {}
 wordHMMs['o'] = proto2.concatHMMs(phoneHMMs, modellist['o'])
 
 obsloglik = example['obsloglik']
-startprob = wordHMMs['o']['startprob']
-transmat = wordHMMs['o']['transmat'][:-1, :-1]
-forward_prob = proto2.forward(obsloglik, np.log(startprob), np.log(transmat))
+startprob = np.log(wordHMMs['o']['startprob'])
+transmat = np.log(wordHMMs['o']['transmat'][:-1, :-1])
+forward_prob = proto2.forward(obsloglik, startprob, transmat)
 
 # Sum over all timesteps
 # marginal = np.log(np.sum(forward_prob, axis=1))
@@ -37,3 +37,14 @@ plt.pcolormesh(forward_prob)
 plt.colorbar()
 
 plt.show()
+
+
+#backward algorithm
+backward_prob = proto2.backward(example['obsloglik'], startprob, transmat)
+diff = np.absolute( backward_prob - example['logbeta'])
+print('Backward max difference with example: ', np.max(diff))
+
+#viterbi
+vit_result = proto2.viterbi(example['obsloglik'], startprob, transmat)
+vit_dif = vit_result[0] - example['vloglik'][0]
+print('Viterbi diff in probabilities: ', vit_dif)
