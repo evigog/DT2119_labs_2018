@@ -13,8 +13,11 @@ modellist = {}
 for digit in prondict.prondict.keys():
     modellist[digit] = ['sil'] + prondict.prondict[digit] + ['sil']
 
+#produce HMM for each model in modelist
 wordHMMs = {}
-wordHMMs['o'] = proto2.concatHMMs(phoneHMMs, modellist['o'])
+for word in modellist.keys():
+    h = proto2.concatHMMs(phoneHMMs, modellist[word])
+    wordHMMs[word] = h
 
 obsloglik = example['obsloglik']
 startprob = np.log(wordHMMs['o']['startprob'])
