@@ -64,6 +64,10 @@ def concatHMMs(hmmmodels, namelist):
     combinedhmm['means'] = new_means
     combinedhmm['covars'] = new_covars
 
+    # convert to log space
+    combinedhmm['startprob'] = np.log( combinedhmm['startprob'])
+    combinedhmm['transmat'] = np.log(combinedhmm['transmat'] [:-1, :-1]) #ignore last state
+
     return combinedhmm
 
 def gmmloglik(log_emlik, weights):
@@ -181,7 +185,7 @@ def viterbi(log_emlik, log_startprob, log_transmat):
        best = backpointer[int(viterbi_path[t+1]), t+1]
        viterbi_path[t]= int(best)
 
-    return viterbi_loglik, viterbi_path
+    return {'loglik': viterbi_loglik, 'path': viterbi_path}
 
 
 def statePosteriors(log_alpha, log_beta):
@@ -195,6 +199,22 @@ def statePosteriors(log_alpha, log_beta):
     Output:
         log_gamma: NxM array of gamma probabilities for each of the M states in the model
     """
+    log_alpha = np.where(np.isinf(log_alpha), 0, log_alpha)
+    sum_alphas = np.sum(np.exp(log_alpha), axis=1)
+    sum_alphas = np.reshape(sum_alphas, (sum_alphas.size, 1))
+    log_gamma = log_alpha + log_beta - sum_alphas
+
+    # test state probabilities in linear domain
+    a = np.abs(log_gamma).astype(np.float128)  # convert to float128 to avoid overflow in exp
+    linear_gamma = np.exp(a)
+    sum_prob = np.sum(linear_gamma, axis=1)
+    if (sum_prob.all() == 1):
+        print('gammas sum to 1!')
+    else:
+        print('gammas do not sum to 1!')
+
+    return log_gamma
+
 
 def updateMeanAndVar(X, log_gamma, varianceFloor=5.0):
     """ Update Gaussian parameters with diagonal covariance
