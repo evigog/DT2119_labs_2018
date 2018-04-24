@@ -81,7 +81,7 @@ print('Backward max difference with example: ', np.max(diff))
 
 #viterbi for hmm 'o'
 vit_result = proto2.viterbi(example['obsloglik'], startprob, transmat)
-vit_dif = vit_result[0] - example['vloglik'][0]
+vit_dif = vit_result['loglik'] - example['vloglik'][0]
 print('Viterbi diff in probabilities: ', vit_dif)
 
 # plot viterbi path

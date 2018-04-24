@@ -26,49 +26,34 @@ def concatHMMs(hmmmodels, namelist):
        wordHMMs['o'] = concatHMMs(phoneHMMs, ['sil', 'ow', 'sil'])
     """
 
-    M, D = np.shape(hmmmodels['ow']['covars'])
-    num_phonems = len(namelist)
-    # num_phonemes*M+1 is the len of the new transition matrix
+    final_startprob = hmmmodels[namelist[0]]['startprob'][:-1]
 
-    new_transition_matrix = np.zeros(((3*M)+1, (3*M)+1))
-    new_means = np.zeros((len(hmmmodels)*M, D))
-    new_covars = np.zeros(np.shape(new_means))
-    new_start_prob = np.zeros((3*M))
+    single_num_states = hmmmodels[namelist[0]]['startprob'].shape[0]
+    final_num_states = len(namelist) * (single_num_states - 1) + 1
 
-    combinedhmm = {}
-    for i, phoneme in enumerate(namelist):
-        hmm = hmmmodels[phoneme]
+    final_transmat = np.zeros((final_num_states, final_num_states))
+    final_means = hmmmodels[namelist[0]]['means']
+    final_covars = hmmmodels[namelist[0]]['covars']
 
-        dim = np.shape(hmm['transmat'])[0]
+    for i in range(0, len(namelist)):
+        start = i * (single_num_states - 1)
+        end = start + single_num_states
+        final_transmat[start:end, start:end] = hmmmodels[namelist[i]]['transmat']
 
-        if i == 0:
-            start = i*dim
-            end = (i*dim)+dim
-            new_transition_matrix[start:end, start:end] = hmm['transmat']
-        elif i == 1:
-            start = (i*dim)-1
-            end = (i*dim)+dim-1
-            new_transition_matrix[start:end, start:end] = hmm['transmat']
-        elif i == 2:
-            start = (i*dim)-2
-            end = (i*dim)+dim-2
-            new_transition_matrix[start:, start:] = hmm['transmat']
-
-        new_means[i*M:i*M+3] = hmm['means']
-        new_covars[i*M:i*M+3] = hmm['covars']
-        new_start_prob[i*M:i*M+3] = hmm['startprob'][:-1]
-
-    combinedhmm['name'] = namelist[-2]
-    combinedhmm['startprob'] = new_start_prob
-    combinedhmm['transmat'] = new_transition_matrix
-    combinedhmm['means'] = new_means
-    combinedhmm['covars'] = new_covars
+        if (i != 0):
+            final_means = np.vstack((final_means, hmmmodels[namelist[i]]['means']))
+            final_covars = np.vstack((final_covars, hmmmodels[namelist[i]]['covars']))
+            final_startprob = np.concatenate((final_startprob, hmmmodels[namelist[i]]['startprob'][:-1]))
 
     # convert to log space
-    combinedhmm['startprob'] = np.log( combinedhmm['startprob'])
-    combinedhmm['transmat'] = np.log(combinedhmm['transmat'] [:-1, :-1]) #ignore last state
+    final_startprob = np.log(final_startprob)
+    final_transmat = np.log(final_transmat[:-1, :-1])
+
+    combinedhmm = {'name': namelist, 'means': final_means, 'startprob': final_startprob, 'covars': final_covars,
+                   'transmat': final_transmat}
 
     return combinedhmm
+
 
 def gmmloglik(log_emlik, weights):
     """Log Likelihood for a GMM model based on Multivariate Normal Distribution.
