@@ -83,10 +83,6 @@ def forward(log_emlik, log_startprob, log_transmat):
     # N frames, M states
     N, M = np.shape(log_emlik)
 
-    print('shape log_emlik: ', np.shape(log_emlik))
-    print('shape log_startprob: ', np.shape(log_startprob))
-    print('shape log_transmat: ', np.shape(log_transmat))
-
     forward_prob = np.zeros((N, M))
 
     log_alpha_0 = np.add(log_startprob, log_emlik[0, :])
@@ -94,14 +90,12 @@ def forward(log_emlik, log_startprob, log_transmat):
 
     for timestep in range(1, N):
         for state in range(M):
-            log_alpha = logsumexp(np.add(forward_prob[timestep-1, :],
-                                         log_transmat[state, :]
-                                         )
-                                  ) + log_emlik[timestep, :]
+            sum = np.add(forward_prob[timestep-1, :],
+                         log_transmat[:, state])
+            lse = logsumexp(sum)
+            log_alpha = lse + log_emlik[timestep, state]
 
-        forward_prob[timestep, :] = log_alpha
-
-    print('shape forward_prob: ', np.shape(forward_prob))
+            forward_prob[timestep, state] = log_alpha
 
     return forward_prob
 
@@ -123,8 +117,8 @@ def backward(log_emlik, log_startprob, log_transmat):
 
     for t in range(num_observations-2, -1, -1):
         for s in range(num_states):
-            #compute sum
-            sum_mat = log_transmat[s,:] + log_emlik[t+1,:] + backward_prob[t+1, :]
+            # compute sum
+            sum_mat = log_transmat[s, :] + log_emlik[t+1, :] + backward_prob[t+1, :]
             backward_prob[t, s] = logsumexp(sum_mat)
 
     return backward_prob
