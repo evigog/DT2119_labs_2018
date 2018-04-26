@@ -42,7 +42,6 @@ def score_utterances_by_forward_probs(data, wordHMMs):
     for datapoint in data:
         digit = datapoint['digit']
         features = datapoint['lmfcc']
-        # print(digit)
 
         per_model_scores = []
         for word_hmm in wordHMMs.items():
@@ -61,21 +60,10 @@ def score_utterances_by_forward_probs(data, wordHMMs):
             per_model_scores.append((word_hmm[0], score))
 
         # Keep the one with the highest score
-        scores[digit] = sorted(per_model_scores, key=lambda d: d[1])[-1]
-        # for k, v in scores.items():
-        #     for tup in v:
-        #         print(tup)
-        # print()
+        highest_score_model = sorted(per_model_scores, key=lambda d: d[1], reverse=True)[0]
+        scores[digit] = highest_score_model
 
     scorrings = [digit == score_tup[0] for digit, score_tup in scores.items()]
-
-    # if not np.array(scorrings).all():
-    #     unique, counts = np.unique(scorrings, return_counts=True)
-    #     wrongs = scorrings[scorrings == False]
-    #     idx_wrongs = np.where(wrongs)
-    #     print(idx_wrongs)
-    # else:
-    #     print('Every utterance received the highest log likelihood score by the corresponding HMM')
 
     return scorrings
 
@@ -95,6 +83,7 @@ for word in modellist.keys():
     h = proto2.concatHMMs(phoneHMMs, modellist[word])
     wordHMMs[word] = h
 
+
 obsloglik = example['obsloglik']
 startprob = wordHMMs['o']['startprob']
 transmat = wordHMMs['o']['transmat']
@@ -102,30 +91,26 @@ transmat = wordHMMs['o']['transmat']
 # forward algorithm for hmm 'o'
 forward_prob = proto2.forward(obsloglik, startprob, transmat)
 
-fig = plt.figure()
-ax = plt.subplot(121)
-ax.set_title('Actual')
-plt.pcolormesh(example['logalpha'])
+# fig = plt.figure()
+# ax = plt.subplot(121)
+# ax.set_title('Actual')
+# plt.pcolormesh(example['logalpha'])
 
-ax = plt.subplot(122)
-ax.set_title('Computed')
-plt.pcolormesh(forward_prob)
-plt.colorbar()
+# ax = plt.subplot(122)
+# ax.set_title('Computed')
+# plt.pcolormesh(forward_prob)
+# plt.colorbar()
 
-plt.savefig("Fig/forward_probs.png")
+# plt.savefig("Fig/forward_probs.png")
 
-hmms_loglik = get_alpha_log_likelihood(forward_prob)
-print("Expected log likelihood: {}, Computed: {}".format(example['loglik'],
-                                                         hmms_loglik))
+# hmms_loglik = get_alpha_log_likelihood(forward_prob)
+# print("Expected log likelihood: {}, Computed: {}".format(example['loglik'],
+#                                                          hmms_loglik))
 
 scorring = score_utterances_by_forward_probs(data, wordHMMs)
-if not np.array(scorring).all():
-    unique, counts = np.unique(scorring, return_counts=True)
-    wrongs = scorring[scorring == False]
-    idx_wrongs = np.where(wrongs)
-    print(idx_wrongs)
-else:
-    print('Every utterance received the highest log likelihood score by the corresponding HMM')
+unique, counts = np.unique(scorring, return_counts=True)
+print(unique, counts)
+print()
 
 
 # backward algorithm for hmm 'o'
