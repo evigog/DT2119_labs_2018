@@ -1,5 +1,5 @@
 import numpy as np
-from tools2 import *
+import tools2
 
 import matplotlib.pyplot as plt
 
@@ -210,3 +210,22 @@ def updateMeanAndVar(X, log_gamma, varianceFloor=5.0):
          means: MxD mean vectors for each state
          covars: MxD covariance (variance) vectors for each state
     """
+    # number of mixtures equals to M (number of hmm states)
+    num_mixtures = log_gamma.shape[1]
+    feature_dim = X.shape[1]
+    means = np.zeros((num_mixtures, feature_dim))
+    covars = np.zeros((num_mixtures, feature_dim))
+
+    for i in range(num_mixtures):
+        gamma_sum = np.sum(log_gamma[:, i])
+        means[i] = np.dot(log_gamma[:, i].T, X) / gamma_sum
+
+        dif = np.power(X - means[i], 2)
+        covars[i] = np.dot(log_gamma[:, i].T, dif) / gamma_sum
+
+    # check if variance is larger that variancefloor
+    covars = np.where(covars < varianceFloor, varianceFloor, covars)
+
+    return {'mean': means, 'covar': covars}
+
+

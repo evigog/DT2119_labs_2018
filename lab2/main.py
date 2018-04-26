@@ -68,14 +68,54 @@ def score_utterances_by_forward_probs(data, wordHMMs):
     return scorrings
 
 
+def question_5_2(data, wordHMMs):
+    d = data[10]
+
+    loglik_list = []
+
+    for digit in wordHMMs.keys():
+
+        model = wordHMMs[digit]
+        means = model['means']
+        covars = model['covars']
+
+        log_lik_old = 0
+        for it in range(20):
+            log_emission = tools2.log_multivariate_normal_density_diag(d['lmfcc'], means, covars)
+
+            alphas = proto2.forward(log_emission, model['startprob'], model['transmat'])
+            betas = proto2.backward(log_emission, model['startprob'], model['transmat'])
+            gammas = proto2.statePosteriors(alphas, betas)
+
+            log_lik = get_alpha_log_likelihood(alphas)
+
+            print('likelihood=', log_lik, ' at iteration=', it)
+            print('mean=', np.mean(means), 'covar=', np.mean(covars))
+            print('\n')
+
+            if (abs(log_lik - log_lik_old) < 1e-4):
+                print('Converged!')
+                break;
+
+            result = proto2.updateMeanAndVar(d['lmfcc'], gammas, varianceFloor=5.0)
+            means = result['mean']
+            covars = result['covar']
+
+            log_lik_old = log_lik
+
+        loglik_list.append(log_lik)
+
+    return loglik_list
+
+
 data = np.load('lab2_data.npz')['data']
 phoneHMMs = np.load('lab2_models.npz')['phoneHMMs'].item()
 example = np.load('lab2_example.npz')['example'].item()
 
 
 modellist = {}
-for digit in prondict.prondict.keys():
-    modellist[digit] = ['sil'] + prondict.prondict[digit] + ['sil']
+for digit in prondict.keys():
+    modellist[digit] = ['sil'] + prondict[digit] + ['sil']
 
 # produce HMM for each model in modelist
 wordHMMs = {}
@@ -121,7 +161,7 @@ print('Backward max difference with example: ', np.max(diff))
 # viterbi for hmm 'o'
 vit_result = proto2.viterbi(example['obsloglik'], startprob, transmat)
 vit_dif = vit_result['loglik'] - example['vloglik'][0]
-print('Viterbi diff in probabilities: ', vit_dif)
+print('Viterbi difference with example: ', vit_dif)
 
 # plot viterbi path
 plt.clf()
@@ -136,3 +176,6 @@ gamma_prob = proto2.statePosteriors(forward_prob, backward_prob)
 
 # score all utterances using viterbi
 test_viterbi(data, wordHMMs)
+
+#compute log-likelihood using expectation maximization
+log_link_list = question_5_2(data, wordHMMs)
