@@ -95,7 +95,7 @@ def question_5_2(data, wordHMMs):
 
             if (abs(log_lik - log_lik_old) < 1e-4):
                 print('Converged!')
-                break;
+                break
 
             result = proto2.updateMeanAndVar(d['lmfcc'], gammas, varianceFloor=5.0)
             means = result['mean']
@@ -114,8 +114,8 @@ example = np.load('lab2_example.npz')['example'].item()
 
 
 modellist = {}
-for digit in prondict.keys():
-    modellist[digit] = ['sil'] + prondict[digit] + ['sil']
+for digit in prondict.prondict.keys():
+    modellist[digit] = ['sil'] + prondict.prondict[digit] + ['sil']
 
 # produce HMM for each model in modelist
 wordHMMs = {}
