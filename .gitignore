@@ -1,2 +1,11 @@
 .idea/
 lab1/__pycache__/
+lab2/__pycache__/
+lab3/__pycache__/
+lab1/venv/
+lab2/venv/
+lab3/venv/
+lab3/pysndfile-1.1.0/
+lab3/tidigits/
+
+
