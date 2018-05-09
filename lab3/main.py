@@ -23,36 +23,86 @@ class Main:
         self.stateList = [ph + '_' + str(id) for ph in self.phones
                           for id in range(self.nstates[ph])]
 
+    def split_training_data(self):
+        data = self.extract_features()
+        data_len = len(data)
+
+        train_len = int(np.floor(.9*data_len))
+        valid_len = data_len-train_len
+
+        men_in_train = int(np.floor(train_len/2))
+        women_in_train = train_len-men_in_train
+
+        men_in_valid = int(np.floor(valid_len/2))
+        women_in_valid = valid_len-men_in_valid
+
+        training, validation = []
+
+        train_file = 'tidigits/disc_4.1.1/tidigits/train'
+
+        men_added, women_added = 0
+        for root, dirs, files in os.walk(
+                                    os.path.join(ROOT, train_file, 'man')):
+                for dir in np.shuffe(dirs):
+                    utterances = os.listdir(
+                                    os.path.join(ROOT, train_file, 'man', dir))
+
+                    for utterance in np.shuffle(utterances):
+                        filename = os.path.join(root, dir, utterance)
+
+                        if len(utterances) + len(training) <= men_in_train:
+                            training.append(filename)
+                        else:
+                            validation.append(filename)
+                
+                # Stops walking into further subdirectories
+                break
+
+    # def _extract_gender_balanced_filename_lists(self, )
 
 
-    def extract_features(self):
 
-        traindata = []
-        for root, dirs, files in os.walk(os.path.join(
-                                        ROOT,
-                                        'tidigits/disc_4.1.1/tidigits/train')):
+
+
+
+
+
+    def extract_features(self, test=False):
+
+        paths = ['tidigits/disc_4.1.1/tidigits/train', 'tidigits/disc_4.2.1/tidigits/test']
+
+        if test:
+            out_filename = 'test_data.npz'
+            path = paths[1]
+        else:
+            out_filename = 'train_data.npz'
+            path = paths[0]
+
+        data = []
+        for root, dirs, files in os.walk(
+                                os.path.join(ROOT, path)):
             for file in files:
                 if file.endswith('.wav'):
                     filename = os.path.join(root, file)
                     samples, samplingrate = tools3.loadAudio(filename)
 
-                    # ...your code for feature extraction and forced alignment
                     lmfcc = tools1.mfcc(samples)
                     mspec = tools1.mspec_only(samples)
                     targets = self._make_targets(filename, lmfcc)
 
-                    # The targets we are calculating are based on the
-                    # lmfcc features. Is this weird? Or is it fine,
-                    # because we are looking to predict HMM states, and the
-                    # HMMs are using lmfccs inherently? It's prolly fine
-                    traindata.append({
+                    data.append({
                         'filename': filename,
                         'lmfcc': lmfcc,
                         'mspec': mspec,
                         'targets': targets
                         })
 
-        np.savez(os.path.join(DATA, 'traindata.npz'), traindata=traindata)
+        if test:
+            np.savez(os.path.join(DATA, out_filename), testdata=data)
+        else:
+            np.savez(os.path.join(DATA, out_filename), traindata=data)
+
+        return data
 
     def _make_targets(self, filename):
         wordTrans = list(tools3.path2info(filename)[2])
