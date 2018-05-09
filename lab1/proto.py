@@ -184,7 +184,7 @@ def cepstrum(input, nceps):
     Note: you can use the function dct from scipy.fftpack.realtransforms
     """
     # apply the Discrete Cosine Transform
-    output = dct(input)[:, 0:nceps]
+    output = dct(input, norm='ortho')[:, 0:nceps]
 
     # myplot(output, 'Before lifter')
 
