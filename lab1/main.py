@@ -16,7 +16,7 @@ def main():
         frames_to_mfcc_features = []
         frames_to_mspec_features = []
         for audio_sample in samples_dict:
-            
+
             mfcc_feature_transform = p.mfcc(audio_sample["samples"])
             frames_to_mfcc_features.append(mfcc_feature_transform)
 
@@ -28,7 +28,7 @@ def main():
 
         mfcc_r = np.corrcoef(mfcc_data, rowvar = False)
         mspec_r = np.corrcoef(mspec_data, rowvar = False)
-        
+
         fig = plt.figure(figsize=(12,6))
         ax = plt.subplot(121)
         ax.set_title("MFCC Feature correlations")
