@@ -1,12 +1,18 @@
 import os
+import sys
 import numpy as np
-from lab3.prondict import prondict
+from prondict import prondict
 
-import lab3.lab3_tools as tools3
-import lab3.lab3_proto as proto3
-import lab1.proto as proto1
-import lab2.proto2 as proto2
-import lab2.tools2 as tools2
+import lab3_tools as tools3
+import lab3_proto as proto3
+
+
+sys.path.append('../lab1/')
+import proto as proto1
+
+sys.path.append('../lab2/')
+import proto2 as proto2
+import tools2 as tools2
 
 ROOT = ''
 LAB2_ROOT = os.path.join(ROOT, '..', 'lab2')
@@ -26,8 +32,11 @@ class Main:
         self.stateList = [ph + '_' + str(id) for ph in self.phones
                           for id in range(self.nstates[ph])]
 
-    def split_training_data(self):
-        data = self.extract_features()
+    # Splits the train directory into two lists of links
+    # One contains the links to the training data
+    # and the other to the validation data
+    def lists_of_paths_to_split_on(self, data):
+        # data = self.extract_features()
         data_len = len(data)
 
         train_len = int(np.floor(.9*data_len))
@@ -39,45 +48,40 @@ class Main:
         men_in_valid = int(np.floor(valid_len/2))
         women_in_valid = valid_len-men_in_valid
 
-        training, validation = []
+        training, validation = [], []
 
         train_file = 'tidigits/disc_4.1.1/tidigits/train'
 
-        men_added, women_added = 0
-        for root, dirs, files in os.walk(
-                                    os.path.join(ROOT, train_file, 'man')):
-                for dir in np.shuffe(dirs):
-                    utterances = os.listdir(
-                                    os.path.join(ROOT, train_file, 'man', dir))
+        dirs = os.listdir(os.path.join(ROOT, train_file, 'man'))
+        # For each man
+        for dir in dirs:
+            utterances = os.listdir(os.path.join(ROOT, train_file, 'man', dir))
+            # For each utterance of the man
+            for utterance in utterances:
+                filename = os.path.join(ROOT, train_file, 'man', dir, utterance)
 
-                    for utterance in np.shuffle(utterances):
-                        filename = os.path.join(root, dir, utterance)
+                if len(utterances) + len(training) <= men_in_train:
+                    training.append(filename)
+                else:
+                    validation.append(filename)
 
-                        if len(utterances) + len(training) <= men_in_train:
-                            training.append(filename)
-                        else:
-                            validation.append(filename)
-                
-                # Stops walking into further subdirectories
-                break
+        dirs = os.listdir(os.path.join(ROOT, train_file, 'woman'))
+        # For each woman
+        for dir in dirs:
+            utterances = os.listdir(os.path.join(ROOT, train_file, 'woman', dir))
 
-    # def _extract_gender_balanced_filename_lists(self, )
+            # For each utterance of the woman
+            for utterance in utterances:
+                filename = os.path.join(ROOT, train_file, 'woman', dir, utterance)
 
+                if len(utterances) + len(training) <= women_in_train:
+                    training.append(filename)
+                else:
+                    validation.append(filename)
 
+        return training, validation
 
-
-
-
-
-
-    def extract_features(self, test=False):
-
-        paths = ['tidigits/disc_4.1.1/tidigits/train', 'tidigits/disc_4.2.1/tidigits/test']
-
-        if test:
-            path = paths[1]
-        else:
-            path = paths[0]
+    def extract_features(self, path, test=False):
 
         data = []
         for root, dirs, files in os.walk(os.path.join(
@@ -150,8 +154,36 @@ class Main:
 if __name__ == '__main__':
 
     start = Main()
-    train_path = 'data/disc_4.1.1/tidigits/train'
-    test_path = 'data/disc_4.2.1/tidigits/test'
+    train_path = 'tidigits/disc_4.1.1/tidigits/train'
+    test_path = 'tidigits/disc_4.2.1/tidigits/test'
 
     # start.extract_features(train_path)
-    start.extract_features(test_path, True)
+    # start.extract_features(test_path, test=True)
+
+    training_dic_list = np.load(os.path.join(DATA, 'traindata.npz'))['traindata']
+
+    training_list, validation_list = start.lists_of_paths_to_split_on(
+                                            training_dic_list)
+
+    final_training_dic_list = []
+    final_validation_dic_list = []
+
+    for entry in training_dic_list:
+        filename_parts = entry['filename'].split('/')
+        if filename_parts[0] == 'data':
+            entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
+
+        if entry['filename'] in training_list:
+            final_training_dic_list.append(entry)
+
+        elif entry['filename'] in validation_list:
+            final_validation_dic_list.append(entry)
+
+        else:
+            raise ValueError('Uhoh')
+
+    np.savez(os.path.join(DATA, 'training_split.npz'),
+             traindata=final_training_dic_list)
+
+    np.savez(os.path.join(DATA, 'validation_split.npz'),
+             validationdata=final_validation_dic_list)
