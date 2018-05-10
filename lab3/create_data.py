@@ -75,21 +75,18 @@ class Main:
         paths = ['tidigits/disc_4.1.1/tidigits/train', 'tidigits/disc_4.2.1/tidigits/test']
 
         if test:
-            out_filename = 'test_data.npz'
             path = paths[1]
         else:
-            out_filename = 'train_data.npz'
             path = paths[0]
 
         data = []
         for root, dirs, files in os.walk(os.path.join(
-                                        ROOT, path)):  #tigits
+                                        ROOT, path)):
             for file in files:
                 if file.endswith('.wav'):
                     filename = os.path.join(root, file)
                     samples, samplingrate = tools3.loadAudio(filename)
 
-                    # ...your code for feature extraction and forced alignment
                     lmfcc = proto1.mfcc(samples)
                     mspec = proto1.mspec_only(samples)
                     targets = self._make_targets(filename, lmfcc)
@@ -99,16 +96,13 @@ class Main:
                     else:
                         gender = 'woman'
 
-                    speakerID = root[-2:] #extract speakerID from root folder
+                    # extract speakerID from root folder
+                    speakerID = root[-2:]
 
-                    # The targets we are calculating are based on the
-                    # lmfcc features. Is this weird? Or is it fine,
-                    # because we are looking to predict HMM states, and the
-                    # HMMs are using lmfccs inherently? It's prolly fine
                     data.append({
                         'filename': filename,
-                        'gender' : gender,
-                        'speakerID' : speakerID,
+                        'gender': gender,
+                        'speakerID': speakerID,
                         'lmfcc': lmfcc,
                         'mspec': mspec,
                         'targets': targets
@@ -153,13 +147,11 @@ class Main:
         return viterbi_out['loglik'], viterbi_out['path']
 
 
-
-
 if __name__ == '__main__':
 
     start = Main()
     train_path = 'data/disc_4.1.1/tidigits/train'
     test_path = 'data/disc_4.2.1/tidigits/test'
 
-    #start.extract_features(train_path)
+    # start.extract_features(train_path)
     start.extract_features(test_path, True)
