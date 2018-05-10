@@ -2,3 +2,4 @@ venv/
 __pycache__/
 pysndfile-1.1.0/
 tidigits
+data/
