@@ -1,5 +1,5 @@
 import numpy as np
-import tools2
+from lab2.tools2 import *
 
 import matplotlib.pyplot as plt
 
@@ -184,13 +184,13 @@ def statePosteriors(log_alpha, log_beta):
     log_gamma = log_alpha + log_beta - sum_alphas
 
     # test state probabilities in linear domain
-    a = np.abs(log_gamma).astype(np.float128)  # convert to float128 to avoid overflow in exp
-    linear_gamma = np.exp(a)
-    sum_prob = np.sum(linear_gamma, axis=1)
-    if (sum_prob.all() == 1):
-        print('gammas sum to 1!')
-    else:
-        print('gammas do not sum to 1!')
+   # a = np.abs(log_gamma).astype(np.float128)  # convert to float128 to avoid overflow in exp
+   # linear_gamma = np.exp(a)
+   # sum_prob = np.sum(linear_gamma, axis=1)
+   # if (sum_prob.all() == 1):
+   #     print('gammas sum to 1!')
+   # else:
+   #     print('gammas do not sum to 1!')
 
     return log_gamma
 

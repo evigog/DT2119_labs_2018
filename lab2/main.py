@@ -107,75 +107,75 @@ def question_5_2(data, wordHMMs):
 
     return loglik_list
 
-
-data = np.load('lab2_data.npz')['data']
-phoneHMMs = np.load('lab2_models.npz')['phoneHMMs'].item()
-example = np.load('lab2_example.npz')['example'].item()
-
-
-modellist = {}
-for digit in prondict.prondict.keys():
-    modellist[digit] = ['sil'] + prondict.prondict[digit] + ['sil']
-
-# produce HMM for each model in modelist
-wordHMMs = {}
-for word in modellist.keys():
-    h = proto2.concatHMMs(phoneHMMs, modellist[word])
-    wordHMMs[word] = h
+def test():
+    data = np.load('lab2_data.npz')['data']
+    phoneHMMs = np.load('lab2_models.npz')['phoneHMMs'].item()
+    example = np.load('lab2_example.npz')['example'].item()
 
 
-obsloglik = example['obsloglik']
-startprob = wordHMMs['o']['startprob']
-transmat = wordHMMs['o']['transmat']
+    modellist = {}
+    for digit in prondict.prondict.keys():
+        modellist[digit] = ['sil'] + prondict.prondict[digit] + ['sil']
 
-# forward algorithm for hmm 'o'
-forward_prob = proto2.forward(obsloglik, startprob, transmat)
-
-# fig = plt.figure()
-# ax = plt.subplot(121)
-# ax.set_title('Actual')
-# plt.pcolormesh(example['logalpha'])
-
-# ax = plt.subplot(122)
-# ax.set_title('Computed')
-# plt.pcolormesh(forward_prob)
-# plt.colorbar()
-
-# plt.savefig("Fig/forward_probs.png")
-
-# hmms_loglik = get_alpha_log_likelihood(forward_prob)
-# print("Expected log likelihood: {}, Computed: {}".format(example['loglik'],
-#                                                          hmms_loglik))
-
-scorring = score_utterances_by_forward_probs(data, wordHMMs)
-unique, counts = np.unique(scorring, return_counts=True)
-print(unique, counts)
-print()
+    # produce HMM for each model in modelist
+    wordHMMs = {}
+    for word in modellist.keys():
+        h = proto2.concatHMMs(phoneHMMs, modellist[word])
+        wordHMMs[word] = h
 
 
-# backward algorithm for hmm 'o'
-backward_prob = proto2.backward(example['obsloglik'], startprob, transmat)
-diff = np.absolute(backward_prob - example['logbeta'])
-print('Backward max difference with example: ', np.max(diff))
+    obsloglik = example['obsloglik']
+    startprob = wordHMMs['o']['startprob']
+    transmat = wordHMMs['o']['transmat']
 
-# viterbi for hmm 'o'
-vit_result = proto2.viterbi(example['obsloglik'], startprob, transmat)
-vit_dif = vit_result['loglik'] - example['vloglik'][0]
-print('Viterbi difference with example: ', vit_dif)
+    # forward algorithm for hmm 'o'
+    forward_prob = proto2.forward(obsloglik, startprob, transmat)
 
-# plot viterbi path
-plt.clf()
-plt.pcolormesh(forward_prob.T)
-plt.plot(vit_result['path'])
-plt.colorbar()
-plt.savefig('Fig/viterbi_path')
-plt.show()
+    # fig = plt.figure()
+    # ax = plt.subplot(121)
+    # ax.set_title('Actual')
+    # plt.pcolormesh(example['logalpha'])
 
-# calculate state posteriors for wordHMMs['o']
-gamma_prob = proto2.statePosteriors(forward_prob, backward_prob)
+    # ax = plt.subplot(122)
+    # ax.set_title('Computed')
+    # plt.pcolormesh(forward_prob)
+    # plt.colorbar()
 
-# score all utterances using viterbi
-test_viterbi(data, wordHMMs)
+    # plt.savefig("Fig/forward_probs.png")
 
-#compute log-likelihood using expectation maximization
-log_link_list = question_5_2(data, wordHMMs)
+    # hmms_loglik = get_alpha_log_likelihood(forward_prob)
+    # print("Expected log likelihood: {}, Computed: {}".format(example['loglik'],
+    #                                                          hmms_loglik))
+
+    scorring = score_utterances_by_forward_probs(data, wordHMMs)
+    unique, counts = np.unique(scorring, return_counts=True)
+    print(unique, counts)
+    print()
+
+
+    # backward algorithm for hmm 'o'
+    backward_prob = proto2.backward(example['obsloglik'], startprob, transmat)
+    diff = np.absolute(backward_prob - example['logbeta'])
+    print('Backward max difference with example: ', np.max(diff))
+
+    # viterbi for hmm 'o'
+    vit_result = proto2.viterbi(example['obsloglik'], startprob, transmat)
+    vit_dif = vit_result['loglik'] - example['vloglik'][0]
+    print('Viterbi difference with example: ', vit_dif)
+
+    # plot viterbi path
+    plt.clf()
+    plt.pcolormesh(forward_prob.T)
+    plt.plot(vit_result['path'])
+    plt.colorbar()
+    plt.savefig('Fig/viterbi_path')
+    plt.show()
+
+    # calculate state posteriors for wordHMMs['o']
+    gamma_prob = proto2.statePosteriors(forward_prob, backward_prob)
+
+    # score all utterances using viterbi
+    test_viterbi(data, wordHMMs)
+
+    #compute log-likelihood using expectation maximization
+    log_link_list = question_5_2(data, wordHMMs)

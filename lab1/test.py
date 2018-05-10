@@ -37,6 +37,6 @@ def compute_mfcc():
 
 
 #coef = example_mfcc()
-coeffs = compute_mfcc()
+#coeffs = compute_mfcc()
 
 
