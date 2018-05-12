@@ -15,7 +15,6 @@ import proto2 as proto2
 import tools2 as tools2
 
 ROOT = ''
-LAB2_ROOT = os.path.join(ROOT, '..', 'lab2')
 DATA = os.path.join(ROOT, 'data')
 
 
@@ -36,7 +35,6 @@ class Main:
     # One contains the links to the training data
     # and the other to the validation data
     def lists_of_paths_to_split_on(self, data):
-        # data = self.extract_features()
         data_len = len(data)
 
         train_len = int(np.floor(.9*data_len))
@@ -74,7 +72,7 @@ class Main:
             for utterance in utterances:
                 filename = os.path.join(ROOT, train_file, 'woman', dir, utterance)
 
-                if len(utterances) + len(training) <= women_in_train:
+                if (len(utterances) + len(training)) - men_in_train <= women_in_train:
                     training.append(filename)
                 else:
                     validation.append(filename)
@@ -182,7 +180,7 @@ if __name__ == '__main__':
         else:
             raise ValueError('Uhoh')
 
-    np.savez(os.path.join(DATA, 'training_split.npz'),
+    np.savez(os.path.join(DATA, 'train_split.npz'),
              traindata=final_training_dic_list)
 
     np.savez(os.path.join(DATA, 'validation_split.npz'),
