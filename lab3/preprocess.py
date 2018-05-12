@@ -1,106 +1,182 @@
 import os
+from utilities import Constants
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 
-def dynamic_features(traindata):
-    dynam_features_list = []
+class Preprocessor:
 
-    for ut in traindata:  # for each utterance
-        timesteps = len(ut['targets'])
-        stacked_mfcc = np.zeros((timesteps, 7, 13))
+    def __init__(self):
+        self.co = Constants()
 
-        for t in range(timesteps - 3):
+    # create dynamic features of input matrix
+    def _dynamic_features(self, matrix):
+        dynam_features_list = []
+
+        timesteps = matrix.shape[0]
+        for t in range(timesteps):
 
             indx = np.zeros(7, dtype=int)
+
             for k, i in enumerate(range(-3, 4)):
-                if (t + i < 0 or t + i > timesteps):
-                    indx[k] = -(t + i)  # mirrored to zero
+                if (t + i < 0 ):
+                    # mirrored to zero
+                    indx[k] = -(t + i)
+                elif (t+i > timesteps-1):
+                    indx[k] = t - i
                 else:
                     indx[k] = t + i
 
-            stacked_mfcc[t, :, :] = ut['lmfcc'][indx, :]
+            if (t > 85 ):
+                a = [t-3, t-2, t-1, t, t+1, t+2, t+3]
+                b = indx
+                z = a
 
-        dynam_features_list.append(stacked_mfcc)
+            dynam_features_list.append(matrix[indx, :])
 
-    return dynam_features_list
+        return dynam_features_list
 
-#perform standartisation of input dataset
-#mean std are standartisation parameters
-def feature_standartisation( set, training, mean, std):
+    def _flatten(self, set):
+        lmfcc_stack, mspec_stack, targets_stack = [], [], []
 
-    if (training):
+        for entry in set:
+            for lmfcc in entry['lmfcc']:
+                lmfcc_stack.append(lmfcc)
+            for mspec in entry['mspec']:
+                mspec_stack.append(mspec)
+            for target in entry['targets']:
+                targets_stack.append(target)
+
+        lmfcc_stack = np.array(lmfcc_stack)
+        mspec_stack = np.array(mspec_stack)
+        targets_stack = np.array(targets_stack)
+
+        return self._float_covert(lmfcc_stack), self._float_covert(mspec_stack), self._float_covert(targets_stack)
+
+    def _float_covert(self, arr):
+        if not type(arr) == np.ndarray:
+            raise ValueError('Pls only np array, k?')
+
+        return arr.astype('float32')
+
+    def _standardize_training(self, lmfcc_stack, mspec_stack,
+                              dynamic_lmfcc_stack, dynamic_mspec_stack):
+
         scaler = StandardScaler()
-        standarized_set = scaler.fit(set)
 
-        return (standarized_set, standarized_set.with_mean, standarized_set.with_std)  #return paremeters to use for standartisation
-                                                                                       # of validation and test
-    else: #validation or test set
-        scaler = StandardScaler(with_mean=mean, with_std=std)
-        standarized_set = scaler.fit(set)
+        scaled_lmfcc = scaler.fit_transform(lmfcc_stack)
+        lmfcc_mean = scaler.mean_
+        lmfcc_std = scaler.var_
 
-        return standarized_set
+        scaled_mspec = scaler.fit_transform(mspec_stack)
+        mspec_mean = scaler.mean_
+        mspec_std = scaler.var_
 
-#create training and validation set
-#def split(traindata):
+        scaled_dynamic_lmfcc = scaler.fit(dynamic_lmfcc_stack)
+        dynamic_lmfcc_mean = scaler.mean_
+        dynamic_lmfcc_std = scaler.var_
 
-#input is training, validation or test set
-def flatten_set(set):
+        scaled_dynamic_mspec = scaler.fit(dynamic_mspec_stack)
+        dynamic_mspec_mean = scaler.mean_
+        dynamic_mspec_std = scaler.var_
 
-    lmfcc = set[0]['lmfcc']
-    mspec = set[0]['mspec']
-    target = set[0]['target']
+        return (scaled_lmfcc, lmfcc_mean, lmfcc_std), \
+               (scaled_mspec, mspec_mean, mspec_std), \
+               (scaled_dynamic_lmfcc, dynamic_lmfcc_mean, dynamic_lmfcc_std), \
+               (scaled_dynamic_mspec, dynamic_mspec_mean, dynamic_mspec_std)
 
-    for i in range(1, len(set)):
+    def _standardize_rest(self, lmfcc_stack, mspec_stack,
+                          dynamic_lmfcc_stack, dynamic_mspec_stack):
 
-        lmfcc = np.vstack(lmfcc, set[i]['lmfcc'])
-        mspec = np.vstack(mspec, set[i]['mspec'])
-        target = np.vstack(target, set[i]['target'])
+            scaled_lmfcc = self._do_maths(lmfcc_stack, self.train_lmfcc_mean,
+                                         self.train_lmfcc_std)
 
-    return {'lmfcc':lmfcc.astype('float32'), 'mspec':mspec.astype('float32'), 'target':target.astype('float32')}
+            scaled_mspec = self._do_maths(mspec_stack, self.train_mspec_mean,
+                                         self.train_mspec_std)
+
+            scaled_dynamic_lmfcc = self._do_maths(dynamic_lmfcc_stack,
+                                                 self.train_dynamic_lmfcc_mean,
+                                                 self.train_dynamic_lmfcc_std)
+
+            scaled_dynamic_mspec = self._do_maths(dynamic_mspec_stack,
+                                                 self.train_dynamic_mspec_mean,
+                                                 self.train_dynamic_mspec_std)
+
+            return scaled_lmfcc, scaled_mspec, scaled_dynamic_lmfcc, scaled_dynamic_mspec
+
+    def _do_maths(self, set, mean, std):
+        return (set - mean)/std
+
+    def process(self, set_name):
+        print('Loading unprocessed splits...')
+        if set_name == 'train':
+            set = np.load(os.path.join(self.co.DATA_ROOT, 'train_split.npz'))['traindata']
+        elif set_name == 'validation':
+            set = np.load(os.path.join(self.co.DATA_ROOT, 'validation_split.npz'))['validationdata']
+        elif set_name == 'test':
+            set = np.load(os.path.join(self.co.DATA_ROOT, 'testdata.npz'))['testdata']
+
+        print('Flattening...')
+        set_lmfcc, set_mspec, set_targets = self._flatten(set)
+
+        print('Creating dynamic features...')
+        set_dynamic_lmfcc = self._dynamic_features(set_lmfcc)
+        set_dynamic_mspec = self._dynamic_features(set_mspec)
+
+        print('dynamic lmfcc: ', np.shape(set_dynamic_lmfcc))
+        print('dynamic_mspec: ', np.shape(set_dynamic_mspec))
+
+        print('Scaling...')
+        if set_name == 'train':
+            set_lmfcc_scaling_t, set_mspec_scaling_t, set_dynamic_lmfcc_scaling_t, set_dynamic_mspec_scaling_t = \
+                            self._standardize_training(set_lmfcc, set_mspec,
+                                                       set_dynamic_lmfcc,
+                                                       set_dynamic_mspec)
+
+            set_lmfcc = set_lmfcc_scaling_t[0]
+            set_mspec = set_mspec_scaling_t[0]
+
+            set_dynamic_lmfcc = set_dynamic_lmfcc_scaling_t[0]
+            set_dynamic_mspec = set_dynamic_mspec_scaling_t[0]
+
+            self.train_lmfcc_mean = set_lmfcc_scaling_t[1]
+            self.train_lmfcc_std = set_lmfcc_scaling_t[2]
+
+            self.train_mspec_mean = set_mspec_scaling_t[1]
+            self.train_mspec_std = set_mspec_scaling_t[2]
+
+            self.train_dynamic_lmfcc_mean = set_dynamic_lmfcc_scaling_t[1]
+            self.train_dynamic_lmfcc_std = set_dynamic_lmfcc_scaling_t[2]
+
+            self.train_dynamic_mspec_mean = set_dynamic_mspec_scaling_t[1]
+            self.train_dynamic_mspec_std = set_dynamic_mspec_scaling_t[2]
+
+        else:
+            set_lmfcc, set_mspec, set_dynamic_lmfcc, set_dynamic_mspec = \
+                                self._standardize_rest(
+                                    set_lmfcc, set_mspec,
+                                    set_dynamic_lmfcc,
+                                    set_dynamic_mspec)
+
+        self._store(set_lmfcc, set_mspec, set_dynamic_lmfcc, set_dynamic_mspec,
+                    set_targets, set_name)
+        print()
+
+    def _store(self, set_lmfcc, set_mspec, set_dynamic_lmfcc,
+               set_dynamic_mspec, set_targets, set_name):
+
+        filename = '{}_preprocessed.npz'.format(set_name)
+
+        np.savez(os.path.join(self.co.DATA_ROOT, filename),
+                 lmfcc=set_lmfcc, mspec=set_mspec,
+                 dynamic_lmfcc=set_dynamic_lmfcc,
+                 dynamic_mspec=set_dynamic_mspec,
+                 targets=set_targets)
 
 
-def load_data():
-    traindata = np.load('data/traindata.npz')['traindata']
-    testdata = np.load('data/testdata.npz')['testdata']
+if __name__ == '__main__':
+    preprocessor = Preprocessor()
 
-    #train_set, val_set = split(traindata)  #todo
-
-    #todo: standarize lmfcc and append to final list
-    dynamic_lmfcc_list = dynamic_features(traindata)  ###where to use it??
-
-    train_flat = flatten_set(train_set)
-    val_flat = flatten_set(val_set)
-    test_flat = flatten_set(testdata)
-
-    #features standartisation - use same parameters with training
-    std_lmfcc_train = feature_standartisation(train_flat['lmfcc'], True, 0, 0)
-    mean = std_lmfcc_train[1]
-    std = std_lmfcc_train[2]
-    std_lmfcc_val = feature_standartisation(val_flat['lmfcc'], True, mean, std)
-    std_lmfcc_test = feature_standartisation(test_flat['lmfcc'], True, mean, std)
-
-
-    std_mspec_train = feature_standartisation(train_flat['mspec'], True, 0, 0)
-    mean = std_mspec_train[1]
-    std = std_mspec_train[2]
-    std_mspec_val = feature_standartisation(val_flat['mspec'], True, mean, std)
-    std_mspec_test = feature_standartisation(test_flat['mspec'], True, mean, std)
-
-    train = {'lmfcc':std_lmfcc_train, 'mspec':std_mspec_train, 'target':train_flat['target']}
-    val = {'lmfcc': std_lmfcc_val, 'mspec': std_mspec_val, 'target': val_flat['target']}
-    test = {'lmfcc': std_lmfcc_test, 'mspec': std_mspec_test, 'target': train_flat['target']}
-
-
-    return (train, val, test)
-
-load_data()
-
-
-
-
-
-
-
-
-
+    preprocessor.process('train')
+    preprocessor.process('validation')
+    preprocessor.process('test')
