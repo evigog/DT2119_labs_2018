@@ -10,10 +10,10 @@ class Preprocessor:
         self.co = Constants()
 
     # create dynamic features of input matrix
-    def _dynamic_features(self, matrix):
+    def _dynamic_features(self, stack):
         dynam_features_list = []
 
-        timesteps = matrix.shape[0]
+        timesteps = stack.shape[0]
         for t in range(timesteps):
 
             indx = np.zeros(7, dtype=int)
@@ -32,18 +32,82 @@ class Preprocessor:
                 b = indx
                 z = a
 
-            dynam_features_list.append(matrix[indx, :])
+            dynam_features_list.append(stack[indx, :])
 
         return dynam_features_list
 
+    # set is a list of dictionaries. Each dictionary contains a sample
+    def _create_dynamic_features(self, set):
+
+        for sample in set:
+            # lmfcc_f is TxD, timestepsxfeatures
+            lmfcc_f = sample['lmfcc']
+            mspec_f = sample['mspec']
+
+            dynamic_lmfcc = self._get_sample_dynamic_vectors(lmfcc_f)
+            dynamic_mspec = self._get_sample_dynamic_vectors(mspec_f)
+
+            # print('d lmfcc: ', np.shape(dynamic_lmfcc))
+            # print('d mspec: ', np.shape(dynamic_mspec))
+
+            sample['dynamic_lmfcc'] = dynamic_lmfcc
+            sample['dynamic_mspec'] = dynamic_mspec
+
+        return set
+
+    # That is *almost* correct at the boundaries.
+    def _get_sample_dynamic_vectors(self, sample_features):
+            sample_dynamic_vectors = []
+
+            for t in range(np.shape(sample_features)[0]):
+                current = sample_features[t, :]
+                # We want the previous and next 3 features around
+                # the current timestep
+                if t < 3:
+                    next = [el for vector in [sample_features[i, :]
+                            for i in range(t+1, t+4)] for el in vector]
+                    if t == 0:
+                        prev_slice = sample_features[t+1:t+4, :][::-1]
+                    else:
+                        prev_slice = sample_features[t-1: t+2, :][::-1]
+
+                    previous = [el for vector in prev_slice for el in vector]
+                elif t >= np.shape(sample_features)[1]-3:
+                    next_slice = sample_features[-3:, :]
+                    previous = [el for vector in [sample_features[i, :]
+                                for i in range(t-3, t)] for el in vector]
+                
+                    next = [el for vector in next_slice for el in vector]
+
+                else:
+                    prev_slice = sample_features[t-3:t, :]
+                    next_slice = sample_features[t+1:t+4, :]
+
+                    previous = [el for vector in prev_slice for el in vector]
+                    next = [el for vector in next_slice for el in vector]
+
+                # print('previous: ', np.shape(previous))
+                # print('current: ', np.shape(current))
+                # print('next: ', np.shape(next))
+
+                dynamic_feature_vector = np.hstack((previous, current, next))
+
+                sample_dynamic_vectors.append(dynamic_feature_vector)
+
+            return sample_dynamic_vectors
+
     def _flatten(self, set):
-        lmfcc_stack, mspec_stack, targets_stack = [], [], []
+        lmfcc_stack, mspec_stack, dynamic_lmfcc, dynamic_mspec, targets_stack = [], [], [], [], []
 
         for entry in set:
             for lmfcc in entry['lmfcc']:
                 lmfcc_stack.append(lmfcc)
             for mspec in entry['mspec']:
                 mspec_stack.append(mspec)
+            for d_lmfcc in entry['dynamic_lmfcc']:
+                dynamic_lmfcc.append(d_lmfcc)
+            for d_mspec in entry['dynamic_mspec']:
+                dynamic_mspec.append(entry['dynamic_mspec'])
             for target in entry['targets']:
                 targets_stack.append(target)
 
@@ -116,22 +180,23 @@ class Preprocessor:
         elif set_name == 'test':
             set = np.load(os.path.join(self.co.DATA_ROOT, 'testdata.npz'))['testdata']
 
-        print('Flattening...')
-        set_lmfcc, set_mspec, set_targets = self._flatten(set)
-
         print('Creating dynamic features...')
-        set_dynamic_lmfcc = self._dynamic_features(set_lmfcc)
-        set_dynamic_mspec = self._dynamic_features(set_mspec)
+        set = self._create_dynamic_features(set)
+
+        print('Flattening...')
+        set_lmfcc, set_mspec, set_dynamic_lmfcc, \
+            set_dynamic_mspec, set_targets = self._flatten(set)
 
         print('dynamic lmfcc: ', np.shape(set_dynamic_lmfcc))
         print('dynamic_mspec: ', np.shape(set_dynamic_mspec))
 
         print('Scaling...')
         if set_name == 'train':
-            set_lmfcc_scaling_t, set_mspec_scaling_t, set_dynamic_lmfcc_scaling_t, set_dynamic_mspec_scaling_t = \
-                            self._standardize_training(set_lmfcc, set_mspec,
-                                                       set_dynamic_lmfcc,
-                                                       set_dynamic_mspec)
+            set_lmfcc_scaling_t, set_mspec_scaling_t, \
+                set_dynamic_lmfcc_scaling_t, set_dynamic_mspec_scaling_t = \
+                self._standardize_training(set_lmfcc, set_mspec,
+                                           set_dynamic_lmfcc,
+                                           set_dynamic_mspec)
 
             set_lmfcc = set_lmfcc_scaling_t[0]
             set_mspec = set_mspec_scaling_t[0]
@@ -179,4 +244,4 @@ if __name__ == '__main__':
 
     preprocessor.process('train')
     preprocessor.process('validation')
-    preprocessor.process('test')
+    # preprocessor.process('test')
