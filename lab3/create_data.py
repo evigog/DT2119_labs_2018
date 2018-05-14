@@ -152,8 +152,8 @@ class Main:
 if __name__ == '__main__':
 
     start = Main()
-    train_path = 'tidigits/disc_4.1.1/tidigits/train'
-    test_path = 'tidigits/disc_4.2.1/tidigits/test'
+    train_path = 'data/disc_4.1.1/tidigits/train'
+    test_path = 'data/disc_4.2.1/tidigits/test'
 
     # start.extract_features(train_path)
     # start.extract_features(test_path, test=True)

@@ -12,7 +12,7 @@ class Constants:
 
         self.NUM_CLASSES = 61
         
-        self.INPUT_KIND = 'lmfcc'
+        self.INPUT_KIND = 'dynamic_lmfcc'
         self.EPOCHS = 1
         self.LEARNING_RATE = 0.001
         self.BATCH_SIZE = 256

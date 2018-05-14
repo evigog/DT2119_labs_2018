@@ -64,13 +64,15 @@ def train_network(model, train_X, train_Y, valid_X, valid_Y):
 
 
 def store_model(model):
+
+    #create one path for each new model
     if not os.path.exists(co.MODELS_ROOT):
         os.mkdir(co.MODELS_ROOT)
 
     already_stored = os.listdir(co.MODELS_ROOT)
     if len(already_stored) != 0:
         # Split model name, get last part #.h5, extract only #
-        ids = [int(model_name.split('_')[-1][:-3])
+        ids = [int(model_name).split('_')[-1][:-3]
                for model_name in already_stored]
 
         model_name = '{}_model_{}.h5'.format(co.INPUT_KIND, np.amax(ids)+1)
@@ -80,9 +82,9 @@ def store_model(model):
     model.save(os.path.join(co.MODELS_ROOT, model_name))
     return os.path.join(co.MODELS_ROOT, model_name)
 
+def training_pipeline(train_feature):  #train_feature: lmfcc, mspec, dynamic_lmfcc, dynamic_mspec
 
-if __name__ == '__main__':
-
+    co.INPUT_KIND = train_feature
     training_dictionary = get_data('train')
     validation_dictionary = get_data('validation')
 
@@ -127,3 +129,13 @@ if __name__ == '__main__':
     }
 
     logger.store_log_entry(entry)
+
+if __name__ == '__main__':
+
+    feature_list = ['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
+    for feature in feature_list:
+        training_pipeline(feature)
+
+
+
+

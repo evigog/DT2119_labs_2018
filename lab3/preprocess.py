@@ -1,5 +1,5 @@
 import os
-from utilities import Constants
+from lab3.utilities import Constants
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
@@ -107,15 +107,17 @@ class Preprocessor:
             for d_lmfcc in entry['dynamic_lmfcc']:
                 dynamic_lmfcc.append(d_lmfcc)
             for d_mspec in entry['dynamic_mspec']:
-                dynamic_mspec.append(entry['dynamic_mspec'])
+                dynamic_mspec.append(d_mspec)
             for target in entry['targets']:
                 targets_stack.append(target)
 
-        lmfcc_stack = np.array(lmfcc_stack)
-        mspec_stack = np.array(mspec_stack)
-        targets_stack = np.array(targets_stack)
+        lmfcc_stack = np.asarray(lmfcc_stack)
+        mspec_stack = np.asarray(mspec_stack)
+        dynamic_lmfcc = np.asarray(dynamic_lmfcc)
+        dynamic_mspec = np.asarray(dynamic_mspec)
+        targets_stack = np.asarray(targets_stack)
 
-        return self._float_covert(lmfcc_stack), self._float_covert(mspec_stack), self._float_covert(targets_stack)
+        return self._float_covert(lmfcc_stack), self._float_covert(mspec_stack),self._float_covert(dynamic_lmfcc),self._float_covert(dynamic_mspec), self._float_covert(targets_stack)
 
     def _float_covert(self, arr):
         if not type(arr) == np.ndarray:
@@ -136,11 +138,11 @@ class Preprocessor:
         mspec_mean = scaler.mean_
         mspec_std = scaler.var_
 
-        scaled_dynamic_lmfcc = scaler.fit(dynamic_lmfcc_stack)
+        scaled_dynamic_lmfcc = scaler.fit_transform(dynamic_lmfcc_stack)
         dynamic_lmfcc_mean = scaler.mean_
         dynamic_lmfcc_std = scaler.var_
 
-        scaled_dynamic_mspec = scaler.fit(dynamic_mspec_stack)
+        scaled_dynamic_mspec = scaler.fit_transform(dynamic_mspec_stack)
         dynamic_mspec_mean = scaler.mean_
         dynamic_mspec_std = scaler.var_
 
@@ -244,4 +246,4 @@ if __name__ == '__main__':
 
     preprocessor.process('train')
     preprocessor.process('validation')
-    # preprocessor.process('test')
+    preprocessor.process('test')
