@@ -36,7 +36,7 @@ def define_network(input_shape):
     model.add(Activation('relu'))
 
     for layer in range(co.HIDDEN_LAYERS-1):
-        model.add(Dense(256, input_shape=input_shape))
+        model.add(Dense(256))
         model.add(Activation('relu'))
 
     model.add(Dense(co.NUM_CLASSES))
