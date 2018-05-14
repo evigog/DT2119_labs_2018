@@ -2,6 +2,7 @@ import os
 from utilities import Constants
 from utilities import Logging
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 from keras.models import Sequential
@@ -131,10 +132,35 @@ def training_pipeline(train_feature):  #train_feature: lmfcc, mspec, dynamic_lmf
     logger.store_log_entry(entry)
 
 if __name__ == '__main__':
-
+#
     feature_list = ['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
     for feature in feature_list:
         training_pipeline(feature)
+#
+    #read log file and do plotting
+    log_feed = logger.read_log()
+
+    for model in log_feed:
+
+        #plot training and validation loss across epochs
+        epochs_range = range(0, model['epochs_trained'])
+        plt.plot(epochs_range, model['loss'], label='Training loss')
+        plt.plot(epochs_range, model['val_loss'], label='Validation loss')
+        plt.title('Training and Validation loss for model %s' %model['input'])
+        plt.legend()
+        plt.savefig('models/loss_%s'%model['input'] )
+        plt.show()
+
+
+        # plot training and validation accuracy across epochs
+        epochs_range = range(0, model['epochs_trained'])
+        plt.plot(epochs_range, model['loss'], label='Training accuracy')
+        plt.plot(epochs_range, model['val_loss'], label='Validation accuracy')
+        plt.title('Training and Validation accuracy for model %s' % model['input'])
+        plt.legend()
+        plt.savefig('models/accuracy_%s' % model['input'])
+        plt.show()
+
 
 
 
