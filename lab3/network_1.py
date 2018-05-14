@@ -10,6 +10,7 @@ from keras.layers import Dense, Activation
 from keras.optimizers import Adam
 from keras.losses import categorical_crossentropy
 from keras.callbacks import EarlyStopping
+from tensorflow.python.client import device_lib
 
 from keras.utils.np_utils import to_categorical
 
@@ -53,8 +54,7 @@ def define_network(input_shape):
 
 
 def train_network(model, train_X, train_Y, valid_X, valid_Y):
-    early_stopping = EarlyStopping(monitor='val_acc',
-                                   min_delta=1e-2, patience=2)
+    early_stopping = EarlyStopping(monitor='val_acc',patience=2)
 
     hist = model.fit(train_X, train_Y,
                      validation_data=(valid_X, valid_Y),
@@ -71,9 +71,10 @@ def store_model(model):
         os.mkdir(co.MODELS_ROOT)
 
     already_stored = os.listdir(co.MODELS_ROOT)
+    print(already_stored)
     if len(already_stored) != 0:
         # Split model name, get last part #.h5, extract only #
-        ids = [int(model_name).split('_')[-1][:-3]
+        ids = [int(model_name.split('_')[-1][:-3])
                for model_name in already_stored]
 
         model_name = '{}_model_{}.h5'.format(co.INPUT_KIND, np.amax(ids)+1)
@@ -132,9 +133,11 @@ def training_pipeline(train_feature):  #train_feature: lmfcc, mspec, dynamic_lmf
     logger.store_log_entry(entry)
 
 if __name__ == '__main__':
-#
-    feature_list = ['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
+#   
+    print(device_lib.list_local_devices())
+    feature_list = ['mspec'] #['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
     for feature in feature_list:
+        print("Feature used: ", feature)
         training_pipeline(feature)
 #
     #read log file and do plotting
