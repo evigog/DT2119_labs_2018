@@ -52,13 +52,12 @@ def define_network(input_shape):
 
 
 def train_network(model, train_X, train_Y, valid_X, valid_Y):
-    early_stopping = EarlyStopping(monitor='val_acc',
-                                   min_delta=1e-2, patience=2)
+    early_stopping = EarlyStopping(monitor='val_acc', patience=2)
 
     hist = model.fit(train_X, train_Y,
                      validation_data=(valid_X, valid_Y),
                      epochs=co.EPOCHS, batch_size=co.BATCH_SIZE,
-                     callbacks=[early_stopping])
+                     callbacks=[], verbose=1)
 
     return model, hist
 
@@ -72,7 +71,7 @@ def store_model(model):
     already_stored = os.listdir(co.MODELS_ROOT)
     if len(already_stored) != 0:
         # Split model name, get last part #.h5, extract only #
-        ids = [int(model_name).split('_')[-1][:-3]
+        ids = [int(model_name.split('_')[-1][:-3])
                for model_name in already_stored]
 
         model_name = '{}_model_{}.h5'.format(co.INPUT_KIND, np.amax(ids)+1)
@@ -82,7 +81,9 @@ def store_model(model):
     model.save(os.path.join(co.MODELS_ROOT, model_name))
     return os.path.join(co.MODELS_ROOT, model_name)
 
-def training_pipeline(train_feature):  #train_feature: lmfcc, mspec, dynamic_lmfcc, dynamic_mspec
+
+# train_feature: lmfcc, mspec, dynamic_lmfcc, dynamic_mspec
+def training_pipeline(train_feature):
 
     co.INPUT_KIND = train_feature
     training_dictionary = get_data('train')
@@ -130,12 +131,11 @@ def training_pipeline(train_feature):  #train_feature: lmfcc, mspec, dynamic_lmf
 
     logger.store_log_entry(entry)
 
+
 if __name__ == '__main__':
 
-    feature_list = ['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
-    for feature in feature_list:
-        training_pipeline(feature)
+    # feature_list = ['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
+    # for feature in feature_list:
+    #     training_pipeline(feature)
 
-
-
-
+    training_pipeline('lmfcc')
