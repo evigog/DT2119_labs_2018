@@ -76,7 +76,7 @@ class Preprocessor:
                     next_slice = sample_features[-3:, :]
                     previous = [el for vector in [sample_features[i, :]
                                 for i in range(t-3, t)] for el in vector]
-                
+
                     next = [el for vector in next_slice for el in vector]
 
                 else:
@@ -117,9 +117,13 @@ class Preprocessor:
         dynamic_mspec = np.asarray(dynamic_mspec)
         targets_stack = np.asarray(targets_stack)
 
-        return self._float_covert(lmfcc_stack), self._float_covert(mspec_stack),self._float_covert(dynamic_lmfcc),self._float_covert(dynamic_mspec), self._float_covert(targets_stack)
+        return self._float_convert(lmfcc_stack), \
+            self._float_convert(mspec_stack),    \
+            self._float_convert(dynamic_lmfcc),  \
+            self._float_convert(dynamic_mspec),  \
+            self._float_convert(targets_stack)
 
-    def _float_covert(self, arr):
+    def _float_convert(self, arr):
         if not type(arr) == np.ndarray:
             raise ValueError('Pls only np array, k?')
 

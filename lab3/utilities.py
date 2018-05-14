@@ -61,3 +61,11 @@ class Logging:
         with open(self.LOG_NAME, "w") as f:
             json_p = json.dumps(log_feed, indent=3)
             f.write(json_p)
+
+    def read_log(self):
+        with open(self.LOG_NAME, 'r') as f:
+            log_feed = json.load(f)
+            # If the above line does not work, comment and use the below
+            # log_feed = json.loads(f)
+
+        return log_feed
