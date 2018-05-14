@@ -140,11 +140,11 @@ class Preprocessor:
         mspec_mean = scaler.mean_
         mspec_std = scaler.var_
 
-        scaled_dynamic_lmfcc = scaler.fit(dynamic_lmfcc_stack)
+        scaled_dynamic_lmfcc = scaler.fit_transform(dynamic_lmfcc_stack)
         dynamic_lmfcc_mean = scaler.mean_
         dynamic_lmfcc_std = scaler.var_
 
-        scaled_dynamic_mspec = scaler.fit(dynamic_mspec_stack)
+        scaled_dynamic_mspec = scaler.fit_transform(dynamic_mspec_stack)
         dynamic_mspec_mean = scaler.mean_
         dynamic_mspec_std = scaler.var_
 
