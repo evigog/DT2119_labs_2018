@@ -16,16 +16,19 @@ import numpy as np
 def _viterbi(utteraneHMM, lmfcc):
     means = utteraneHMM['means']
     covars = utteraneHMM['covars']
-    transmat = utteraneHMM['transmat']
+    transmat = utteraneHMM['transmat'][:-1,:-1]
     startprob = utteraneHMM['startprob']
 
     log_emlik = tools2.log_multivariate_normal_density_diag(lmfcc,
                                                             means,
                                                             covars)
+    log_transmat = np.log(transmat)
+    log_startprob = np.log(startprob)
+    viterbi_out = proto2.viterbi(log_emlik, log_startprob, log_transmat)
 
-    viterbi_out = proto2.viterbi(log_emlik, startprob, transmat)
+    return viterbi_out[0], viterbi_out[1]
 
-    return viterbi_out['loglik'], viterbi_out['path']
+    #return viterbi_out['loglik'], viterbi_out['path']
 
 def concatHMMs(hmmmodels, namelist):
     """ Concatenates HMM models in a left to right manner
@@ -91,7 +94,7 @@ nstates = {phone: phoneHMMs[phone]['means'].shape[0]
            for phone in phones}
 stateList = [ph + '_' + str(id) for ph in phones for id in range(nstates[ph])]
 
-filename = 'tidigits/disc_4.1.1/tidigits/train/man/nw/z43a.wav'
+filename = 'data/disc_4.1.1/tidigits/train/man/nw/z43a.wav'
 samples, samplingrate = tools3.loadAudio(filename)
 lmfcc = proto1.mfcc(samples)
 
@@ -105,7 +108,7 @@ print('Example phoneTrans and computed are same: {}\n'.format(np.all(example['ph
 # print(phoneTrans)
 # print(example['phoneTrans'])
 
-# utteranceHMM = proto3.concatHMMs(phoneHMMs, phoneTrans)
+#utteranceHMM = proto3.concatHMMs(phoneHMMs, phoneTrans)
 utteranceHMM = concatHMMs(phoneHMMs, phoneTrans)
 print('For utternaceHMM')
 for key in utteranceHMM.keys():
@@ -125,6 +128,13 @@ viterbiLogLik, viterbiPath = _viterbi(utteranceHMM, lmfcc)
 
 print('Example viterbiLogLik and computed are same: {}\n'.format(np.all(example['viterbiLoglik'] == viterbiLogLik)))
 print('Example viterbiPath and computed are same: {}\n'.format(np.all(example['viterbiPath'] == viterbiPath)))
+
+dif = example['viterbiPath'] - viterbiPath
+print("dif: ", dif)
+
+print(example['viterbiPath'])
+print(viterbiPath)
+
 
 stateIndexes = []
 for state in viterbiPath:
