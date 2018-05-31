@@ -136,21 +136,32 @@ def viterbi(log_emlik, log_startprob, log_transmat):
         viterbi_loglik: log likelihood of the best path
         viterbi_path: best path
     """
-    num_states = log_transmat.shape[0]
-    num_observations = log_emlik.shape[0]   #equal to number of frames
-    path_matrix = np.zeros((num_states, num_observations))
-    backpointer = np.zeros((num_states, num_observations)) #best previous path for each time step
+    num_states = log_transmat.shape[0] # 37
+    # equal to number of frames
+    num_observations = log_emlik.shape[0] # 178
+    path_matrix = np.zeros((num_states, num_observations)) # [37, 178]
+    # best previous path for each time step
+    backpointer = np.zeros((num_states, num_observations)) # [37, 178]
 
-    #initialization step
+    print('num_states: ', num_states)
+    print('num_observations: ', num_observations)
+    print('path_matrix: ', np.shape(path_matrix))
+    print('backpointer: ', np.shape(backpointer))
+
+    # initialization step
     for s in range(num_states-1): #forget about last state
-        path_matrix[s, 0] = log_startprob[s] + log_emlik[0,s]
-    #recursion step
+        path_matrix[s, 0] = log_startprob[s] + log_emlik[0, s]
+    # recursion step
     for t in range(1, num_observations):
-       for s in range(num_states):
-           v = path_matrix[:, t - 1] + log_transmat[:, s]
-           best = np.argmax(v)
-           path_matrix[s,t] = path_matrix[best,t-1] + log_transmat[best, s] + log_emlik[t, s]
-           backpointer[s, t] = best
+        for s in range(num_states):
+            v = path_matrix[:, t - 1] + log_transmat[:, s]
+            best = np.argmax(v)
+            print('best: ', best)
+            print('t: ', t)
+            print('s: ', s)
+            print()
+            path_matrix[s, t] = path_matrix[best, t-1] + log_transmat[best, s] + log_emlik[t, s]
+            backpointer[s, t] = best
 
     backpointer[-1, -1] = np.argmax(path_matrix[s, num_observations-1] + log_transmat[best, -1])
     viterbi_loglik = np.max(path_matrix[:, -1])

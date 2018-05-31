@@ -22,8 +22,9 @@ DATA = os.path.join(ROOT, 'data')
 class Main:
 
     def __init__(self):
-        lab2_models = os.path.join('lab2_models.npz')  #use updated lab2 models
-        self.phoneHMMs = np.load(lab2_models)['phoneHMMs'].item()
+        # lab2_models = os.path.join('lab2_models.npz')  #use updated lab2 models
+        # self.phoneHMMs = np.load(lab2_models)['phoneHMMs'].item()
+        self.phoneHMMs = np.load(os.path.join(ROOT, 'phoneHMMs.npy'))[()]
         self.phones = sorted(self.phoneHMMs.keys())
 
         self.nstates = {phone: self.phoneHMMs[phone]['means'].shape[0]
