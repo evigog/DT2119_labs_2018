@@ -54,19 +54,18 @@ def define_network(input_shape):
 
 
 def train_network(model, train_X, train_Y, valid_X, valid_Y):
-    early_stopping = EarlyStopping(monitor='val_acc',patience=2)
+
+    early_stopping = EarlyStopping(monitor='val_acc', patience=2)
 
     hist = model.fit(train_X, train_Y,
                      validation_data=(valid_X, valid_Y),
                      epochs=co.EPOCHS, batch_size=co.BATCH_SIZE,
-                     callbacks=[early_stopping])
+                     callbacks=[], verbose=1)
 
     return model, hist
 
 
 def store_model(model):
-
-    #create one path for each new model
     if not os.path.exists(co.MODELS_ROOT):
         os.mkdir(co.MODELS_ROOT)
 
@@ -84,7 +83,9 @@ def store_model(model):
     model.save(os.path.join(co.MODELS_ROOT, model_name))
     return os.path.join(co.MODELS_ROOT, model_name)
 
-def training_pipeline(train_feature):  #train_feature: lmfcc, mspec, dynamic_lmfcc, dynamic_mspec
+
+# train_feature: lmfcc, mspec, dynamic_lmfcc, dynamic_mspec
+def training_pipeline(train_feature):
 
     co.INPUT_KIND = train_feature
     training_dictionary = get_data('train')
@@ -163,8 +164,3 @@ if __name__ == '__main__':
         plt.legend()
         plt.savefig('models/accuracy_%s' % model['input'])
         plt.show()
-
-
-
-
-

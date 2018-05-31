@@ -1,5 +1,5 @@
 import numpy as np
-from lab3.lab3_tools import *
+from lab3_tools import *
 
 def words2phones(wordList, pronDict, addSilence=True, addShortPause=False):
     """ word2phones: converts word level to phone level transcription adding silence
@@ -14,14 +14,15 @@ def words2phones(wordList, pronDict, addSilence=True, addShortPause=False):
     """
     phoneTrans = []
     for word in wordList:
-        p = pronDict[word] + ['sp']
+        # p = pronDict[word] + ['sp']
+        p = pronDict[word]
         phoneTrans.append(p)
 
     # flatten list
     flat_list = [item for sublist in phoneTrans for item in sublist]
 
     # no pause model after the last word
-    flat_list = flat_list[:-1]
+    # flat_list = flat_list[:-1]
 
     # add silence in beginnind and end
     flat_list = ['sil'] + flat_list

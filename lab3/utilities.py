@@ -6,14 +6,15 @@ class Constants:
 
     def __init__(self):
         self.ROOT = ''
-        self.DATA_ROOT = 'data'
-        self.LOG_ROOT = 'logs'
-        self.MODELS_ROOT = 'models'
+        self.DATA_ROOT = os.path.join(self.ROOT, 'data')
+        self.LOG_ROOT = os.path.join(self.ROOT, 'logs')
+        self.FIG_ROOT = os.path.join(self.ROOT, 'fig')
+        self.MODELS_ROOT = os.path.join(self.ROOT, 'models')
 
         self.NUM_CLASSES = 61
-        
-        self.INPUT_KIND = 'dynamic_lmfcc'
-        self.EPOCHS = 1
+
+        self.INPUT_KIND = 'mspec'
+        self.EPOCHS = 20
         self.LEARNING_RATE = 0.001
         self.BATCH_SIZE = 256
         self.HIDDEN_LAYERS = 4
