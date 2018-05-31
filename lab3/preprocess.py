@@ -1,5 +1,5 @@
 import os
-from lab3.utilities import Constants
+from utilities import Constants
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
@@ -44,8 +44,8 @@ class Preprocessor:
             lmfcc_f = sample['lmfcc']
             mspec_f = sample['mspec']
 
-            dynamic_lmfcc = self._get_sample_dynamic_vectors(lmfcc_f)
-            dynamic_mspec = self._get_sample_dynamic_vectors(mspec_f)
+            dynamic_lmfcc = self._get_sample_dynamic_vectors_hardcoded(lmfcc_f)
+            dynamic_mspec = self._get_sample_dynamic_vectors_hardcoded(mspec_f)
 
             # print('d lmfcc: ', np.shape(dynamic_lmfcc))
             # print('d mspec: ', np.shape(dynamic_mspec))
@@ -55,8 +55,48 @@ class Preprocessor:
 
         return set
 
-    # That is *almost* correct at the boundaries.
-    def _get_sample_dynamic_vectors(self, sample_features):
+    # # That is *almost* correct at the boundaries.
+    # def _get_sample_dynamic_vectors(self, sample_features):
+    #         sample_dynamic_vectors = []
+
+    #         for t in range(np.shape(sample_features)[0]):
+    #             current = sample_features[t, :]
+    #             # We want the previous and next 3 features around
+    #             # the current timestep
+    #             if t < 3:
+    #                 next = [el for vector in [sample_features[i, :]
+    #                         for i in range(t+1, t+4)] for el in vector]
+    #                 if t == 0:
+    #                     prev_slice = sample_features[t+1:t+4, :][::-1]
+    #                 else:
+    #                     prev_slice = sample_features[t-1: t+2, :][::-1]
+
+    #                 previous = [el for vector in prev_slice for el in vector]
+    #             elif t >= np.shape(sample_features)[1]-3:
+    #                 next_slice = sample_features[-3:, :]
+    #                 previous = [el for vector in [sample_features[i, :]
+    #                             for i in range(t-3, t)] for el in vector]
+
+    #                 next = [el for vector in next_slice for el in vector]
+
+    #             else:
+    #                 prev_slice = sample_features[t-3:t, :]
+    #                 next_slice = sample_features[t+1:t+4, :]
+
+    #                 previous = [el for vector in prev_slice for el in vector]
+    #                 next = [el for vector in next_slice for el in vector]
+
+    #             # print('previous: ', np.shape(previous))
+    #             # print('current: ', np.shape(current))
+    #             # print('next: ', np.shape(next))
+
+    #             dynamic_feature_vector = np.hstack((previous, current, next))
+
+    #             sample_dynamic_vectors.append(dynamic_feature_vector)
+
+    #         return sample_dynamic_vectors
+
+    def _get_sample_dynamic_vectors_hardcoded(self, sample_features):
             sample_dynamic_vectors = []
 
             for t in range(np.shape(sample_features)[0]):
@@ -67,15 +107,24 @@ class Preprocessor:
                     next = [el for vector in [sample_features[i, :]
                             for i in range(t+1, t+4)] for el in vector]
                     if t == 0:
-                        prev_slice = sample_features[t+1:t+4, :][::-1]
-                    else:
-                        prev_slice = sample_features[t-1: t+2, :][::-1]
+                        prev_slice = [sample_features[t+3], sample_features[t+2], sample_features[t+1]]
+                    elif t == 1:
+                        prev_slice = [sample_features[t+1], sample_features[t], sample_features[t-1]]
+                    elif t == 2:
+                        prev_slice = [sample_features[t-1], sample_features[t-2], sample_features[t-1]]
 
                     previous = [el for vector in prev_slice for el in vector]
                 elif t >= np.shape(sample_features)[1]-3:
-                    next_slice = sample_features[-3:, :]
                     previous = [el for vector in [sample_features[i, :]
                                 for i in range(t-3, t)] for el in vector]
+
+                    length = np.shape(sample_features)[0]
+                    if t == length - 3:
+                        next_slice = [sample_features[t+1], sample_features[t+2], sample_features[t+1]]
+                    elif t == length - 2:
+                        next_slice = [sample_features[t+1], sample_features[t-1], sample_features[t-2]]
+                    elif t == length - 1:
+                        next_slice = [sample_features[t-3], sample_features[t-2], sample_features[t-1]]
 
                     next = [el for vector in next_slice for el in vector]
 

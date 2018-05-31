@@ -63,8 +63,6 @@ def train_network(model, train_X, train_Y, valid_X, valid_Y):
 
 
 def store_model(model):
-
-    #create one path for each new model
     if not os.path.exists(co.MODELS_ROOT):
         os.mkdir(co.MODELS_ROOT)
 
