@@ -39,7 +39,7 @@ class Main:
     def lists_of_paths_to_split_on(self, data):
         data_len = len(data)
 
-        train_len = int(np.floor(.9*data_len))
+        train_len = int(np.floor(.7*data_len))
         valid_len = data_len-train_len
 
         men_in_train = int(np.floor(train_len/2))
@@ -99,7 +99,7 @@ class Main:
             for file in files:
                 if file.endswith('.wav'):
                     filename = os.path.join(root, file)
-                    print('\tfor file ', filename)
+                    #print('\tfor file ', filename)
                     samples, samplingrate = tools3.loadAudio(filename)
 
                     lmfcc = proto1.mfcc(samples)
@@ -200,22 +200,21 @@ if __name__ == '__main__':
     train_path = 'data/disc_4.1.1/tidigits/train'
     test_path = 'data/disc_4.2.1/tidigits/test'
 
-    start.extract_features(train_path)
+    #start.extract_features(train_path)
     start.extract_features(test_path, test=True)
 
     training_dic_list = np.load(os.path.join(DATA, 'traindata.npz'))['traindata']
 
     training_list, validation_list = start.lists_of_paths_to_split_on(
-                                            training_dic_list)
+                                           training_dic_list)
 
     final_training_dic_list = []
     final_validation_dic_list = []
 
     for entry in training_dic_list:
-       #filename_parts = entry['filename'].split('/')
-       #if filename_parts[0] == 'data':
-       #    entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
-
+      #filename_parts = entry['filename'].split('/')
+      #if filename_parts[0] == 'data':
+      #    entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
         if entry['filename'] in training_list:
             final_training_dic_list.append(entry)
 
@@ -227,7 +226,7 @@ if __name__ == '__main__':
             raise ValueError('The filename encountered cannot be assigned to either train or validation split')
 
     np.savez(os.path.join(DATA, 'train_split.npz'),
-             traindata=final_training_dic_list)
+            traindata=final_training_dic_list)
 
     np.savez(os.path.join(DATA, 'validation_split.npz'),
-             validationdata=final_validation_dic_list)
+            validationdata=final_validation_dic_list)

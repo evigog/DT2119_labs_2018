@@ -53,12 +53,14 @@ def define_network(input_shape):
     return model
 
 
-def train_network(model, train_X, train_Y, valid_X, valid_Y):
+def train_network(model, train_X, train_Y):
 
-    early_stopping = EarlyStopping(monitor='val_acc', patience=2)
+    #early_stopping = EarlyStopping(monitor='val_acc', patience=2)
 
     hist = model.fit(train_X, train_Y,
-                     validation_data=(valid_X, valid_Y),
+                     #validation_data=(valid_X, valid_Y),
+                     validation_split = 0.1,
+                     shuffle=True,
                      epochs=co.EPOCHS, batch_size=co.BATCH_SIZE,
                      callbacks=[], verbose=1)
 
@@ -95,24 +97,24 @@ def training_pipeline(train_feature):
     training_targets = training_dictionary['targets']
     training_categorical_targets = to_categorical(training_targets)
 
-    validation_lmfcc = validation_dictionary[co.INPUT_KIND]
-    validation_targets = validation_dictionary['targets']
-    validation_categorical_targets = to_categorical(validation_targets)
+    #validation_lmfcc = validation_dictionary[co.INPUT_KIND]
+    #validation_targets = validation_dictionary['targets']
+    #validation_categorical_targets = to_categorical(validation_targets)
 
     input_shape = np.shape(training_lmfcc)
 
     model = define_network(input_shape)
     model, hist = train_network(model,
                                 training_lmfcc,
-                                training_categorical_targets,
-                                validation_lmfcc,
-                                validation_categorical_targets)
+                                training_categorical_targets)
+                                #validation_lmfcc,
+                                #validation_categorical_targets)
 
     model_location = store_model(model)
 
     test_dictionary = get_data('test')
-    test_lmfcc = test_dictionary[co.INPUT_KIND]
-    test_targets = test_dictionary['targets']
+    test_lmfcc = test_dictionary[co.INPUT_KIND][:150000, :]
+    test_targets = test_dictionary['targets'][:150000]
     test_categorical_targets = to_categorical(test_targets)
 
     evaluation = model.evaluate(test_lmfcc, test_categorical_targets)
@@ -136,7 +138,7 @@ def training_pipeline(train_feature):
 if __name__ == '__main__':
 #   
     print(device_lib.list_local_devices())
-    feature_list = ['mspec'] #['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
+    feature_list = ['lmfcc', 'mspec', 'dynamic_lmfcc', 'dynamic_mspec']
     for feature in feature_list:
         print("Feature used: ", feature)
         training_pipeline(feature)
@@ -144,23 +146,23 @@ if __name__ == '__main__':
     #read log file and do plotting
     log_feed = logger.read_log()
 
-    for model in log_feed:
+  # for model in log_feed:
 
-        #plot training and validation loss across epochs
-        epochs_range = range(0, model['epochs_trained'])
-        plt.plot(epochs_range, model['loss'], label='Training loss')
-        plt.plot(epochs_range, model['val_loss'], label='Validation loss')
-        plt.title('Training and Validation loss for model %s' %model['input'])
-        plt.legend()
-        plt.savefig('models/loss_%s'%model['input'] )
-        plt.show()
+  #     #plot training and validation loss across epochs
+  #     epochs_range = range(0, model['epochs_trained'])
+  #     plt.plot(epochs_range, model['loss'], label='Training loss')
+  #     plt.plot(epochs_range, model['val_loss'], label='Validation loss')
+  #     plt.title('Training and Validation loss for model %s' %model['input'])
+  #     plt.legend()
+  #     plt.savefig('models/loss_%s'%model['input'] )
+  #     plt.show()
 
 
-        # plot training and validation accuracy across epochs
-        epochs_range = range(0, model['epochs_trained'])
-        plt.plot(epochs_range, model['loss'], label='Training accuracy')
-        plt.plot(epochs_range, model['val_loss'], label='Validation accuracy')
-        plt.title('Training and Validation accuracy for model %s' % model['input'])
-        plt.legend()
-        plt.savefig('models/accuracy_%s' % model['input'])
-        plt.show()
+  #     # plot training and validation accuracy across epochs
+  #     epochs_range = range(0, model['epochs_trained'])
+  #     plt.plot(epochs_range, model['loss'], label='Training accuracy')
+  #     plt.plot(epochs_range, model['val_loss'], label='Validation accuracy')
+  #     plt.title('Training and Validation accuracy for model %s' % model['input'])
+  #     plt.legend()
+  #     plt.savefig('models/accuracy_%s' % model['input'])
+  #     plt.show()
