@@ -53,64 +53,37 @@ def concatHMMs(hmmmodels, namelist):  #(phoneHMMs, phoneTrans)
        wordHMMs['o'] = concatHMMs(phoneHMMs, ['sil', 'ow', 'sil'])
     """
 
-    single_num_states = hmmmodels[namelist[0]]['startprob'].shape[0]
-    num_pause_models = len([ut for ut in namelist if ut == 'sp'])
-    num_phonemes = len(namelist) - num_pause_models
-    final_num_states = num_phonemes * (single_num_states-1) + 1
-    final_startprob = np.zeros(final_num_states)
-    final_startprob[0] = 1
+    newHMM = {}
+    newHMM["name"] = ""
 
-    final_transmat = np.zeros((final_num_states, final_num_states))
+    M = 0
+    n = len(namelist)
 
-    pause_model = hmmmodels['sp']
+    for i in range(n):
+        newHMM["name"] += hmmmodels[namelist[i]]["name"] + ' '
+        M += hmmmodels[namelist[i]]["means"].shape[0]
 
-    #all phonemes except sp
-    clear_list = list(filter(lambda a: a != 'sp', namelist))
+    newHMM["startprob"] = np.zeros(M + 1)
+    newHMM["transmat"] = np.zeros((M + 1, M + 1))
 
-    before_sp = []
-    for i in range(len(namelist)-1):
-        if (namelist[i+1] == 'sp'):
-            before_sp.append(namelist[i])
-
-    for i in range(0, len( clear_list)):  #iterate list of phonemes
-        start = i * (single_num_states-1)
-        end = start + single_num_states
-
-        #create mask for zero elements
-        transmat_zero = np.array([[False, False, True, True],
-                                  [True, False, False, True],
-                                  [True, True, False, False],
-                                  [True, True, True, True]])
-
-        final_transmat[start:end, start:end] = hmmmodels[clear_list[i]]['transmat']
-        final_transmat[start:end, start:end][transmat_zero] = 0
-
-        if (i == 0):
-            final_means = np.vstack((hmmmodels[clear_list[0]]['means']))
-            final_covars = np.vstack((hmmmodels[clear_list[0]]['covars']))
+    start_i = 0
+    for i in range(n):
+        if i == 0:
+            newHMM["startprob"][:len(hmmmodels[namelist[i]]["startprob"])] = hmmmodels[namelist[i]]["startprob"]
+            newHMM["means"] = hmmmodels[namelist[i]]["means"]
+            newHMM["covars"] = hmmmodels[namelist[i]]["covars"]
         else:
-            final_means = np.vstack((final_means, hmmmodels[clear_list[i]]['means']))
-            final_covars = np.vstack((final_covars, hmmmodels[clear_list[i]]['covars']))
+            newHMM["means"] = np.vstack((newHMM["means"], hmmmodels[namelist[i]]["means"]))
+            newHMM["covars"] = np.vstack((newHMM["covars"], hmmmodels[namelist[i]]["covars"]))
 
-        if(i in before_sp):  #end of word is reached
-            #append pause model
-            final_transmat[end-2, end-1] = hmmmodels[ clear_list[i]]['transmat'][2, 3] * pause_model['startprob'][0]
-            final_transmat[end-2, end] = hmmmodels[ clear_list[i]]['transmat'][2, 3] * pause_model['startprob'][1]
-            final_transmat[end-1, end-1] = pause_model['transmat'][0, 0]
-            final_transmat[end-1, end] = pause_model['transmat'][0, 1]
+        z = hmmmodels[namelist[i]]["transmat"].shape[0]
+        mat = hmmmodels[namelist[i]]["transmat"]
+        for j in range(z):
+            for k in range(z):
+                newHMM["transmat"][j + start_i][k + start_i] = mat[j, k]
+        start_i += (z - 1)
 
-            final_means = np.vstack((final_means, hmmmodels[clear_list[i]]['means']))
-            final_covars = np.vstack((final_covars, hmmmodels[clear_list[i]]['covars']))
-
-
-    #convert to log space
-    final_startprob = np.log(final_startprob)
-    final_transmat = np.log(final_transmat[:-1, :-1])
-
-    combinedhmm = {'name':namelist, 'means':final_means, 'startprob':final_startprob, 'covars':final_covars, 'transmat':final_transmat}
-
-    return combinedhmm
-
+    return newHMM
 
 
 def forcedAlignment(lmfcc, phoneHMMs, phoneTrans):

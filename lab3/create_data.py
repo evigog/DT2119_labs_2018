@@ -50,7 +50,7 @@ class Main:
 
         training, validation = [], []
 
-        train_file = 'tidigits/disc_4.1.1/tidigits/train'
+        train_file = 'data/disc_4.1.1/tidigits/train'
 
         dirs = os.listdir(os.path.join(ROOT, train_file, 'man'))
         # For each man
@@ -92,14 +92,14 @@ class Main:
         return training, validation
 
     def extract_features(self, path, test=False):
-        # print('attempting feature extraction')
+        print('attempting feature extraction')
         data = []
         for root, dirs, files in os.walk(os.path.join(
                                         ROOT, path)):
             for file in files:
                 if file.endswith('.wav'):
                     filename = os.path.join(root, file)
-                    # print('\tfor file ', filename)
+                    print('\tfor file ', filename)
                     samples, samplingrate = tools3.loadAudio(filename)
 
                     lmfcc = proto1.mfcc(samples)
@@ -143,22 +143,24 @@ class Main:
         # tools3.frames2trans(viterbiPath, 'alignment/'+os.path.split(filename[:-4])[-1]+'.lab')
 
         stateIndexes = []
+        state_list = []  #to compare with example['viterbiStateTrans']
         for state in viterbiPath:
             usid = stateTrans[int(state)]
+            #state_list.append(usid)
             stateIndexes.append(self.stateList.index(usid))
 
         return stateIndexes
 
     def _make_transcription_file(self, entry):
         filename_parts = entry['filename'].split('/')
-        if filename_parts[0] == 'data':
-            entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
+        #if filename_parts[0] == 'data':
+         #   entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
 
         filename = entry['filename']
         lmfcc = entry['lmfcc']
 
         wordTrans = list(tools3.path2info(filename)[2])
-        phoneTrans = proto3.words2phones(wordTrans, prondict, addShortPause=True)
+        phoneTrans = proto3.words2phones(wordTrans, prondict)
 
         utteranceHMM = proto3.concatHMMs(self.phoneHMMs, phoneTrans)
 
@@ -177,26 +179,29 @@ class Main:
     def _viterbi(self, utteraneHMM, lmfcc):
         means = utteraneHMM['means']
         covars = utteraneHMM['covars']
-        transmat = utteraneHMM['transmat']
+        transmat = utteraneHMM['transmat'][:-1, :-1] #for viterbi we eliminate the extra state
         startprob = utteraneHMM['startprob']
 
         log_emlik = tools2.log_multivariate_normal_density_diag(lmfcc,
                                                                 means,
                                                                 covars)
+        log_transmat = np.log(transmat)
+        log_startprob = np.log(startprob)
 
-        viterbi_out = proto2.viterbi(log_emlik, startprob, transmat)
+        loglik, path = proto2.viterbi(log_emlik, log_startprob, log_transmat)
 
-        return viterbi_out['loglik'], viterbi_out['path']
+        return loglik, path
 
 
 if __name__ == '__main__':
 
     start = Main()
-    train_path = 'tidigits/disc_4.1.1/tidigits/train'
-    test_path = 'tidigits/disc_4.2.1/tidigits/test'
 
-    # start.extract_features(train_path)
-    # start.extract_features(test_path, test=True)
+    train_path = 'data/disc_4.1.1/tidigits/train'
+    test_path = 'data/disc_4.2.1/tidigits/test'
+
+    start.extract_features(train_path)
+    start.extract_features(test_path, test=True)
 
     training_dic_list = np.load(os.path.join(DATA, 'traindata.npz'))['traindata']
 
@@ -207,9 +212,9 @@ if __name__ == '__main__':
     final_validation_dic_list = []
 
     for entry in training_dic_list:
-        filename_parts = entry['filename'].split('/')
-        if filename_parts[0] == 'data':
-            entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
+       #filename_parts = entry['filename'].split('/')
+       #if filename_parts[0] == 'data':
+       #    entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
 
         if entry['filename'] in training_list:
             final_training_dic_list.append(entry)
