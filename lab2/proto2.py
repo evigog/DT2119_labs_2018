@@ -1,5 +1,5 @@
 import numpy as np
-from lab2.tools2 import *
+from tools2 import *
 
 import matplotlib.pyplot as plt
 
@@ -137,34 +137,80 @@ def viterbi(log_emlik, log_startprob, log_transmat):
         viterbi_path: best path
     """
     num_states = log_transmat.shape[0]
-    num_observations = log_emlik.shape[0]   #equal to number of frames
+    num_observations = log_emlik.shape[0]  # equal to number of frames
     path_matrix = np.zeros((num_states, num_observations))
-    backpointer = np.zeros((num_states, num_observations)) #best previous path for each time step
+    backpointer = np.zeros((num_states, num_observations))  # best previous path for each time step
 
-    #initialization step
-    for s in range(num_states-1): #forget about last state
-        path_matrix[s, 0] = log_startprob[s] + log_emlik[0,s]
-    #recursion step
+    # initialization step
+    for s in range(num_states - 1):  # forget about last state
+        path_matrix[s, 0] = log_startprob[s] + log_emlik[0, s]
+
+    # recursion step
     for t in range(1, num_observations):
-       for s in range(num_states):
-           v = path_matrix[:, t - 1] + log_transmat[:, s]
-           best = np.argmax(v)
-           path_matrix[s,t] = path_matrix[best,t-1] + log_transmat[best, s] + log_emlik[t, s]
-           backpointer[s, t] = best
+        for s in range(num_states):
+            v = path_matrix[:, t - 1] + log_transmat[:, s]
+            best = np.argmax(v)
+            path_matrix[s, t] = path_matrix[best, t - 1] + log_transmat[best, s] + log_emlik[t, s]
+            backpointer[s, t] = best
 
-    backpointer[-1, -1] = np.argmax(path_matrix[s, num_observations-1] + log_transmat[best, -1])
+    backpointer[-1, -1] = np.argmax(path_matrix[s, num_observations - 1] + log_transmat[best, -1])
     viterbi_loglik = np.max(path_matrix[:, -1])
-    # backtracking
+
+  # backtracking
     backpointer = backpointer.astype(int)
     viterbi_path = np.zeros((num_observations))
-    viterbi_path[0] = 0
     viterbi_path[-1] = int(np.argmax(path_matrix[:, -1]))
 
-    for t in range(num_observations-2, -1, -1):
-       best = backpointer[int(viterbi_path[t+1]), t+1]
-       viterbi_path[t]= int(best)
 
-    return {'loglik': viterbi_loglik, 'path': viterbi_path}
+    for t in range(num_observations - 2, -1, -1):
+        best = backpointer[int(viterbi_path[t + 1]), t + 1]
+        viterbi_path[t] = int(best)
+
+
+    return viterbi_loglik, viterbi_path
+
+#def viterbi_new(log_emlik, log_startprob, log_transmat):
+#    """Viterbi path.
+#
+#    Args:
+#        log_emlik: NxM array of emission log likelihoods, N frames, M states
+#        log_startprob: log probability to start in state i
+#        log_transmat: transition log probability from state i to j
+#
+#    Output:
+#        viterbi_loglik: log likelihood of the best path
+#        viterbi_path: best path
+#    """
+#    states = log_emlik.shape[1]
+#    observations = log_emlik.shape[0]
+#    V = np.zeros((observations, states))
+#    B = np.zeros((observations, states))
+#
+#    print('num_states: ', states)
+#    print('num_observations: ', observations)
+#    print('path_matrix: ', np.shape(V))
+#    print('backpointer: ', np.shape(B))
+#
+#    # initialization step
+#    for s in range(states):
+#        V[s, 0] = log_startprob[s] + log_emlik[0, s]
+#
+#    # recursion step
+#    for t in range(1, observations):
+#        for s in range(states):
+#            V[t, s] = np.max(V[t - 1, :] + log_transmat[:, s]) + log_emlik[t, s]
+#            B[t, s] = np.argmax(V[t - 1, :] + log_transmat[:, s])
+#
+#    viterbi_loglik = np.max(V[-1, :])
+#
+#    # Extract best path
+#    state = int(np.argmax(V[-1, :]))
+#    bestPath = [state]
+#    for t in range(observations - 1, 0, -1):
+#        state = int(B[t, state])
+#        bestPath = [state] + bestPath
+#
+#    return (viterbi_loglik, np.array(bestPath))
 
 
 def statePosteriors(log_alpha, log_beta):

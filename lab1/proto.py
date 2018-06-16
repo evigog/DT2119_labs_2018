@@ -3,7 +3,7 @@
 from scipy.fftpack import fft
 from scipy.fftpack.realtransforms import dct
 import matplotlib.pyplot as plt
-from lab1.tools import *
+from tools import *
 import scipy.signal as signal
 
 

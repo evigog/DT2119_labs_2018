@@ -52,14 +52,13 @@ def frames2trans(sequence, outfilename=None, timestep=0.01):
     trans = ''
     for t in range(len(sequence)):
         if sequence[t] != sym:
-            trans = trans + str(start) + ' ' + str(end) + ' ' + sym + '\n'
+            trans = trans + str(start) + ' ' + str(end) + ' ' + str(sym) + '\n'
             sym = sequence[t]
             start = end
         end = end + timestep
-    trans = trans + str(start) + ' ' + str(end) + ' ' + sym + '\n'
-    if outfilename != None:
+    trans = trans + str(start) + ' ' + str(end) + ' ' + str(sym) + '\n'
+    if outfilename is not None:
         with open(outfilename, 'w') as f:
             f.write(trans)
+            print('transcription saved at ', outfilename)
     return trans
-
-        

@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import numpy as np
 from prondict import prondict
 
@@ -21,8 +22,9 @@ DATA = os.path.join(ROOT, 'data')
 class Main:
 
     def __init__(self):
-        lab2_models = os.path.join('lab2_models.npz')  #use updated lab2 models
-        self.phoneHMMs = np.load(lab2_models)['phoneHMMs'].item()
+        # lab2_models = os.path.join('lab2_models.npz')  #use updated lab2 models
+        # self.phoneHMMs = np.load(lab2_models)['phoneHMMs'].item()
+        self.phoneHMMs = np.load(os.path.join(ROOT, 'phoneHMMs.npy'))[()]
         self.phones = sorted(self.phoneHMMs.keys())
 
         self.nstates = {phone: self.phoneHMMs[phone]['means'].shape[0]
@@ -37,7 +39,7 @@ class Main:
     def lists_of_paths_to_split_on(self, data):
         data_len = len(data)
 
-        train_len = int(np.floor(.9*data_len))
+        train_len = int(np.floor(.7*data_len))
         valid_len = data_len-train_len
 
         men_in_train = int(np.floor(train_len/2))
@@ -48,45 +50,56 @@ class Main:
 
         training, validation = [], []
 
-        train_file = 'tidigits/disc_4.1.1/tidigits/train'
+        train_file = 'data/disc_4.1.1/tidigits/train'
 
         dirs = os.listdir(os.path.join(ROOT, train_file, 'man'))
         # For each man
         for dir in dirs:
+            print('Man ', dir)
             utterances = os.listdir(os.path.join(ROOT, train_file, 'man', dir))
-            # For each utterance of the man
-            for utterance in utterances:
-                filename = os.path.join(ROOT, train_file, 'man', dir, utterance)
 
-                if len(utterances) + len(training) <= men_in_train:
+            if (len(utterances) + len(training)) <= men_in_train:
+                for utterance in utterances:
+                    filename = os.path.join(ROOT, train_file, 'man', dir, utterance)
+                    print('\t{} put in training'.format(filename))
                     training.append(filename)
-                else:
+            else:
+                for utterance in utterances:
+                    filename = os.path.join(ROOT, train_file, 'man', dir, utterance)
+                    print('\t{} put in validation'.format(filename))
                     validation.append(filename)
 
         dirs = os.listdir(os.path.join(ROOT, train_file, 'woman'))
         # For each woman
         for dir in dirs:
+            print('Woman ', dir)
             utterances = os.listdir(os.path.join(ROOT, train_file, 'woman', dir))
 
-            # For each utterance of the woman
-            for utterance in utterances:
-                filename = os.path.join(ROOT, train_file, 'woman', dir, utterance)
-
-                if (len(utterances) + len(training)) - men_in_train <= women_in_train:
+            if (len(utterances) + (len(training) - men_in_train)) <= women_in_train:
+                for utterance in utterances:
+                    filename = os.path.join(ROOT, train_file, 'woman', dir, utterance)
+                    print('\t{} put in training'.format(filename))
                     training.append(filename)
-                else:
+            else:
+                for utterance in utterances:
+                    filename = os.path.join(ROOT, train_file, 'woman', dir, utterance)
+                    print('\t{} put in validation'.format(filename))
                     validation.append(filename)
 
+
+        print('There should be {} training samples. There are {}'.format(train_len, len(training)))
+        print('There should be {} validation samples. There are {}'.format(valid_len, len(validation)))
         return training, validation
 
     def extract_features(self, path, test=False):
-
+        print('attempting feature extraction')
         data = []
         for root, dirs, files in os.walk(os.path.join(
                                         ROOT, path)):
             for file in files:
                 if file.endswith('.wav'):
                     filename = os.path.join(root, file)
+                    #print('\tfor file ', filename)
                     samples, samplingrate = tools3.loadAudio(filename)
 
                     lmfcc = proto1.mfcc(samples)
@@ -127,50 +140,81 @@ class Main:
 
         _, viterbiPath = self._viterbi(utteranceHMM, lmfcc)
 
+        # tools3.frames2trans(viterbiPath, 'alignment/'+os.path.split(filename[:-4])[-1]+'.lab')
+
         stateIndexes = []
+        state_list = []  #to compare with example['viterbiStateTrans']
         for state in viterbiPath:
             usid = stateTrans[int(state)]
+            #state_list.append(usid)
             stateIndexes.append(self.stateList.index(usid))
 
         return stateIndexes
 
+    def _make_transcription_file(self, entry):
+        filename_parts = entry['filename'].split('/')
+        #if filename_parts[0] == 'data':
+         #   entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
+
+        filename = entry['filename']
+        lmfcc = entry['lmfcc']
+
+        wordTrans = list(tools3.path2info(filename)[2])
+        phoneTrans = proto3.words2phones(wordTrans, prondict)
+
+        utteranceHMM = proto3.concatHMMs(self.phoneHMMs, phoneTrans)
+
+        stateTrans = [phone + '_' + str(stateid) for phone in phoneTrans
+                      for stateid in range(self.nstates[phone])]
+
+        _, viterbiPath = self._viterbi(utteranceHMM, lmfcc)
+        utterances = []
+        for state in viterbiPath:
+            usid = stateTrans[int(state)]
+            utterances.append(usid)
+
+        tools3.frames2trans(utterances, 'alignment/'+os.path.split(filename[:-4])[-1]+'.lab')
+        shutil.copyfile(filename, 'alignment/'+os.path.split(filename)[-1])
+
     def _viterbi(self, utteraneHMM, lmfcc):
         means = utteraneHMM['means']
         covars = utteraneHMM['covars']
-        transmat = utteraneHMM['transmat']
+        transmat = utteraneHMM['transmat'][:-1, :-1] #for viterbi we eliminate the extra state
         startprob = utteraneHMM['startprob']
 
         log_emlik = tools2.log_multivariate_normal_density_diag(lmfcc,
                                                                 means,
                                                                 covars)
+        log_transmat = np.log(transmat)
+        log_startprob = np.log(startprob)
 
-        viterbi_out = proto2.viterbi(log_emlik, startprob, transmat)
+        loglik, path = proto2.viterbi(log_emlik, log_startprob, log_transmat)
 
-        return viterbi_out['loglik'], viterbi_out['path']
+        return loglik, path
 
 
 if __name__ == '__main__':
 
     start = Main()
+
     train_path = 'data/disc_4.1.1/tidigits/train'
     test_path = 'data/disc_4.2.1/tidigits/test'
 
-    # start.extract_features(train_path)
-    # start.extract_features(test_path, test=True)
+    #start.extract_features(train_path)
+    start.extract_features(test_path, test=True)
 
     training_dic_list = np.load(os.path.join(DATA, 'traindata.npz'))['traindata']
 
     training_list, validation_list = start.lists_of_paths_to_split_on(
-                                            training_dic_list)
+                                           training_dic_list)
 
     final_training_dic_list = []
     final_validation_dic_list = []
 
     for entry in training_dic_list:
-        filename_parts = entry['filename'].split('/')
-        if filename_parts[0] == 'data':
-            entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
-
+      #filename_parts = entry['filename'].split('/')
+      #if filename_parts[0] == 'data':
+      #    entry['filename'] = 'tidigits/'+'/'.join(filename_parts[1:])
         if entry['filename'] in training_list:
             final_training_dic_list.append(entry)
 
@@ -178,10 +222,11 @@ if __name__ == '__main__':
             final_validation_dic_list.append(entry)
 
         else:
-            raise ValueError('Uhoh')
+            print(entry['filename'])
+            raise ValueError('The filename encountered cannot be assigned to either train or validation split')
 
     np.savez(os.path.join(DATA, 'train_split.npz'),
-             traindata=final_training_dic_list)
+            traindata=final_training_dic_list)
 
     np.savez(os.path.join(DATA, 'validation_split.npz'),
-             validationdata=final_validation_dic_list)
+            validationdata=final_validation_dic_list)
